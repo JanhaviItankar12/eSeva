@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useLoginMutation } from '../features/api/authApi'
 import { useNavigate } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
+import { setCredentials } from '../services/authSlice';
 
 export default function LoginForm() {
   const [formData, setFormData] = useState({
@@ -8,7 +10,9 @@ export default function LoginForm() {
     password: ''
   });
 
-  const navigate=useNavigate();
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+
 
   const [login, { isLoading, isError, error }] = useLoginMutation();
   const [errors, setErrors] = useState({});
@@ -59,7 +63,7 @@ export default function LoginForm() {
 
     try {
       const res = await login(formData).unwrap();
-      
+
       // Check if first login for officers to redirect to password change
       if (res.user?.isFirstLogin) {
         alert("Please change your temporary password");
@@ -67,15 +71,19 @@ export default function LoginForm() {
         // router.push('/change-password');
       } else {
         alert("Login successful!");
-        localStorage.setItem('user', JSON.stringify(res.user));
-        localStorage.setItem('token', res.token);
+        dispatch(setCredentials({
+          user: res.user,
+          token: res.token
+        }));
+
+
         // Redirect based on role
-        switch(res.user.role) {
+        switch (res.user.role) {
           case 'CITIZEN':
             navigate('/');
             break;
           case 'GRAM_SEVAK':
-           navigate('/gram-sevak/dashboard');
+            navigate('/gram-sevak/dashboard');
             break;
           case 'SARPANCH':
             navigate('/sarpanch/dashboard');
@@ -94,7 +102,7 @@ export default function LoginForm() {
 
     } catch (err) {
       console.error("Login failed:", err);
-      
+
       // Handle specific error messages
       let errorMessage = "Login failed";
       if (err?.data?.message) {
@@ -104,7 +112,7 @@ export default function LoginForm() {
       } else if (err?.status === 403) {
         errorMessage = "Your account is deactivated. Please contact administrator.";
       }
-      
+
       alert(errorMessage);
     } finally {
       setIsSubmitting(false);
@@ -149,9 +157,8 @@ export default function LoginForm() {
                 name="email"
                 value={formData.email}
                 onChange={handleChange}
-                className={`w-full px-3 py-2 text-sm rounded border ${
-                  errors.email ? 'border-red-500 focus:ring-red-500' : 'border-slate-300 focus:ring-blue-500'
-                } focus:ring-2 focus:border-transparent outline-none transition-all`}
+                className={`w-full px-3 py-2 text-sm rounded border ${errors.email ? 'border-red-500 focus:ring-red-500' : 'border-slate-300 focus:ring-blue-500'
+                  } focus:ring-2 focus:border-transparent outline-none transition-all`}
                 placeholder="your.email@example.com"
               />
               {errors.email && (
@@ -176,9 +183,8 @@ export default function LoginForm() {
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
-                  className={`w-full px-3 py-2 text-sm rounded border ${
-                    errors.password ? 'border-red-500 focus:ring-red-500' : 'border-slate-300 focus:ring-blue-500'
-                  } focus:ring-2 focus:border-transparent outline-none transition-all`}
+                  className={`w-full px-3 py-2 text-sm rounded border ${errors.password ? 'border-red-500 focus:ring-red-500' : 'border-slate-300 focus:ring-blue-500'
+                    } focus:ring-2 focus:border-transparent outline-none transition-all`}
                   placeholder="Enter your password"
                 />
                 <button
@@ -210,8 +216,8 @@ export default function LoginForm() {
 
             {/* Forgot Password Link */}
             <div className="flex justify-end">
-              <a 
-                href="/forgot-password" 
+              <a
+                href="/forgot-password"
                 className="text-xs text-blue-700 hover:text-blue-800 hover:underline"
               >
                 Forgot password?

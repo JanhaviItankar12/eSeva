@@ -148,7 +148,6 @@ export const getAllApplications = async (req, res) => {
       citizenId: id
     });
 
-    
 
     return res.status(200).json({
       message: "All Application data fetched..",

@@ -15,7 +15,8 @@ const Navbar = ({ user }) => {
   const [scrolled, setScrolled] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const navigate = useNavigate();
-
+  
+ 
   
 
   // Scroll effect

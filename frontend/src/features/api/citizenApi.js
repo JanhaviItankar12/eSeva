@@ -1,21 +1,27 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import { baseQueryWithReauth } from "../../utils/wrapper";
+
+//normal basequery
+export const baseQuery = fetchBaseQuery({
+  baseUrl: "http://localhost:8080/api/",
+  prepareHeaders: (headers, { getState }) => {
+    const token =
+      getState().auth.token || localStorage.getItem("token");
+
+    if (token) {
+      headers.set("Authorization", `Bearer ${token}`);
+    }
+
+    return headers;
+  },
+});
+
+
 
 
 export const citizenApi = createApi({
   reducerPath: "citizenApi",
-  baseQuery: fetchBaseQuery({
-    baseUrl: "http://localhost:8080/api/",
-    prepareHeaders: (headers, { getState }) => {
-      const token =
-        getState().auth.token || localStorage.getItem("token");
-
-      if (token) {
-        headers.set("Authorization", `Bearer ${token}`);
-      }
-
-      return headers;
-    },
-  }),
+  baseQuery:baseQueryWithReauth, 
   endpoints: (builder) => ({
 
     citizenInfo: builder.query({

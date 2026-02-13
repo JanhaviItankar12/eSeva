@@ -5,13 +5,23 @@ const HeroSection = ({user}) => {
     const [activeTab, setActiveTab] = useState('track');
     const navigate=useNavigate();
     
-    const handleNewApplyAndTrack=()=>{
+    const handleNewApply=()=>{
 
       if(!user){
         navigate('/login');
       }
       else{
         navigate(`/citizen/new-application/${user.id}`)
+      }
+    }
+
+    const handleTrack=()=>{
+
+      if(!user){
+        navigate('/login');
+      }
+      else{
+        navigate(`/citizen/track-applications/${user.id}`)
       }
     }
 
@@ -33,10 +43,10 @@ const HeroSection = ({user}) => {
               </p>
               
               <div className="flex flex-col sm:flex-row gap-3 pt-2 fade-in delay-3">
-                <button onClick={handleNewApplyAndTrack} className="px-6 py-3 bg-blue-700 hover:bg-blue-800 text-white font-medium rounded transition-colors text-sm">
+                <button onClick={handleNewApply} className="px-6 py-3 bg-blue-700 hover:bg-blue-800 text-white font-medium rounded transition-colors text-sm">
                   New Application
                 </button>
-                <button onClick={handleNewApplyAndTrack} className="px-6 py-3 bg-white hover:bg-slate-50 text-slate-700 font-medium rounded border border-slate-300 transition-colors text-sm">
+                <button onClick={handleTrack} className="px-6 py-3 bg-white hover:bg-slate-50 text-slate-700 font-medium rounded border border-slate-300 transition-colors text-sm">
                   Track Application
                 </button>
               </div>
