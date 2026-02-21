@@ -104,7 +104,7 @@ export default function MyApplication() {
   // Get applications from data with fallback
   const applications = data?.citizenApplications || [];
 
-  console.log(applications);
+
 
   // Log for debugging
   useEffect(() => {
