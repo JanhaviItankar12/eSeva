@@ -10,7 +10,7 @@ export const validCitizen=async(req,res,next)=>{
             if (!citizen) {
               return res.status(404).json({
                 success: false,
-                message: 'User not found'
+                message: 'Citizen not found'
               });
             }
         

@@ -188,8 +188,8 @@ export default function MyApplication() {
     }
   };
 
-  const handleTrackApplication = (appId) => {
-    navigate(`/citizen/track/${appId}`);
+  const handleTrackApplication = (applicationId) => {
+    navigate(`/citizen/track-applications/${id}/${encodeURIComponent(applicationId)}`);
   };
 
   const handleCorrectionUpload = (e, documentType) => {

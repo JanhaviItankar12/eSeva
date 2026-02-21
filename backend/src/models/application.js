@@ -32,6 +32,30 @@ const applicationSchema = new mongoose.Schema({
     }
   ],
 
+ smsSubscriptions: [
+  {
+    mobile: { type: String, required: true },
+    isActive: { type: Boolean, default: false },
+    subscribedAt: { type: Date, default: Date.now },
+    lastNotified: { type: Date, default: null },
+    unsubscribedAt: { type: Date }
+  }
+]
+,
+
+whatsappSubscriptions: [
+  {
+    mobile: { type: String, required: true },
+    isActive: { type: Boolean, default: false },
+    subscribedAt: { type: Date, default: Date.now },
+    lastNotified: { type: Date, default: null },
+    unsubscribedAt: { type: Date }
+  }
+]
+,
+
+
+
 
 
 

@@ -3,20 +3,21 @@ import { requiredDocuments } from "../config/requiredDoc.js";
 import Application from "../models/application.js";
 import cloudinary from "../config/cloudinary.js";
 import fs from "fs";
+import User from "../models/user.js";
 
 
 export const applyCertificate = async (req, res) => {
   try {
-    const  id  = req.user.id;
+    const id = req.user.id;
 
-    
+
     // Parse normal fields (FormData sends strings)
     const certificateType = req.body.certificateType;
     const certificateData = JSON.parse(req.body.certificateData);
     const issueUrgency = req.body.issueUrgency;
     const jurisdiction = JSON.parse(req.body.jurisdiction);
+   
 
-    const citizen = req.citizen;
 
     // Validate required fields
     if (!certificateType) {
@@ -42,6 +43,29 @@ export const applyCertificate = async (req, res) => {
         success: false,
         message:
           "Complete jurisdiction (village, tehsil, district) is required",
+      });
+    }
+
+    // Fetch citizen
+    const citizen = await User.findById(id);
+
+    if (!citizen) {
+      return res.status(404).json({
+        success: false,
+        message: "Citizen not found",
+      });
+    }
+
+    // Compare jurisdiction
+    if (
+      citizen.address.district !== jurisdiction.district ||
+      citizen.address.tehsil !== jurisdiction.tehsil ||
+      citizen.address.village !== jurisdiction.village
+    ) {
+      return res.status(403).json({
+        success: false,
+        message:
+          "You can only apply within your registered jurisdiction",
       });
     }
 

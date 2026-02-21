@@ -40,10 +40,10 @@ const userSchema = new mongoose.Schema({
     isActive: { type: Boolean, default: true },
 
     address: {
-    district: { type: String, required: true },
-    tehsil: { type: String, required: true },
+    district: { type: String},
+    tehsil: { type: String},
     village: {
-      type: String, required: true
+      type: String
     },
   },
     createdAt: { type: Date, default: Date.now }
