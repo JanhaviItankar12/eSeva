@@ -8,6 +8,8 @@ import authRoutes from "./src/routes/authRoute.js";
 import citizenRoutes from "./src/routes/citizenRoute.js";
 
 
+
+
 connectDB();
 
 const app = express();
@@ -26,4 +28,5 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () =>
   console.log(`Server running on port ${PORT}`)
 );
+
 

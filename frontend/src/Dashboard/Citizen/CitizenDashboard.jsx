@@ -199,12 +199,12 @@ export default function CitizenDashboard() {
                 <ArrowLeft className="w-5 h-5 text-gray-600" />
               </button>
               <h1 className="text-2xl font-bold text-gray-900">
-                Welcome back, {citizen.name.split(' ')[0]}! 👋
+                Welcome back, {citizen?.name.split(' ')[0]}! 👋
               </h1>
               <div className="flex items-center mt-2 text-sm text-gray-600">
                 <MapPin className="w-4 h-4 mr-1" />
                 <span>
-                  {citizen.address.village}, {citizen.address.tehsil}, {citizen.address.district}
+                  {citizen?.address?.village}, {citizen?.address?.tehsil}, {citizen?.address?.district}
                 </span>
               </div>
             </div>

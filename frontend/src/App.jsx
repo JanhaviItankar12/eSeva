@@ -10,6 +10,7 @@ import MyApplication from "./Dashboard/Citizen/MyApplication";
 
 import ProtectedRoute from "./protect/ProtectedRoute";
 import TrackApplication from "./Dashboard/Citizen/TrackApplication";
+import AdminDashboard from "./Dashboard/Admin/AdminDashboard";
 
 
 
@@ -51,7 +52,7 @@ function App() {
            />
 
 
-        <Route path="/gramsevak/dashboard" element={<GramSevakDashboard/>} />
+        <Route path="/admin/dashboard" element={<AdminDashboard/>} />
       </Routes>
     </Router>
   );
