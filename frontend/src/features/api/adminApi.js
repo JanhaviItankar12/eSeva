@@ -12,13 +12,13 @@ export const adminApi = createApi({
         headers.set("authorization", `Bearer ${token}`);
       }
 
-      
+
       return headers;
     },
   }),
-   tagTypes: ['Officer','Office', 'District', 'Tehsil', 'Gram'],
+  tagTypes: ['Officer', "Officers", 'Office', 'District', 'Tehsil', 'Gram', 'Settings'],
   endpoints: (builder) => ({
-    createOfficer:builder.mutation({
+    createOfficer: builder.mutation({
       query: (userData) => ({
         url: '/admin/create-officer',
         method: 'POST',
@@ -27,39 +27,85 @@ export const adminApi = createApi({
       invalidatesTags: ['Officer'],
     }),
 
-    
-    getAllOfficers:builder.query({
-      query:()=>({
-        url:'/admin/get-all-officer',
-        method:'GET'
+
+    getAllOfficers: builder.query({
+      query: () => ({
+        url: '/admin/get-all-officer',
+        method: 'GET'
       }),
       invalidatesTags: ['Officer'],
     }),
 
-     // Office Management
+    updateOfficer: builder.mutation({
+      query: ({ id, ...data }) => ({
+        url: `/admin/${id}`,
+        method: "PUT",
+        body: data,
+      }),
+      invalidatesTags: ["Officers"],
+    }),
+
+    // Lock officer
+    lockOfficer: builder.mutation({
+      query: ({ id, reason }) => ({
+        url: `/admin/${id}/lock`,
+        method: "PATCH",
+        body: { reason },
+      }),
+      invalidatesTags: ["Officers"],
+    }),
+
+    // Unlock officer
+    unlockOfficer: builder.mutation({
+      query: (id) => ({
+        url: `/admin/${id}/unlock`,
+        method: "PATCH",
+      }),
+      invalidatesTags: ["Officers"],
+    }),
+
+    // Deactivate officer
+    deactivateOfficer: builder.mutation({
+      query: (id) => ({
+        url: `/admin/${id}/deactivate`,
+        method: "PATCH",
+      }),
+      invalidatesTags: ["Officers"],
+    }),
+
+    // Activate officer
+    activateOfficer: builder.mutation({
+      query: (id) => ({
+        url: `/admin/${id}/activate`,
+        method: "PATCH",
+      }),
+      invalidatesTags: ["Officers"],
+    }),
+
+    // Reset password
+    resetPassword: builder.mutation({
+      query: (id) => ({
+        url: `/admin/${id}/reset-password`,
+        method: "POST",
+      }),
+      invalidatesTags: ["Officers"],
+    }),
+
+    // Get expired password users
+    getExpiredPasswordUsers: builder.query({
+      query: () => "/admin/expired-passwords",
+      providesTags: ["Officers"],
+    }),
+
+
+    // Office Management
     createOffice: builder.mutation({
       query: (officeData) => ({
         url: '/admin/offices',
         method: 'POST',
         body: officeData,
       }),
-        invalidatesTags: (result, error, arg) => {
-        const tags = [
-          { type: 'Office', id: 'LIST' },
-          { type: arg.officeLevel, id: 'LIST' }
-        ];
-        
-        // If it's a child office, also invalidate the parent's list
-        if (arg.parentOffice) {
-          if (arg.officeLevel === 'TEHSIL') {
-            tags.push({ type: 'Tehsil', id: arg.parentOffice });
-          } else if (arg.officeLevel === 'GRAM') {
-            tags.push({ type: 'Gram', id: arg.parentOffice });
-          }
-        }
-        
-        return tags;
-      },
+      invalidatesTags: [{ type: 'Office', id: 'LIST' }],
     }),
 
     updateOffice: builder.mutation({
@@ -68,62 +114,98 @@ export const adminApi = createApi({
         method: 'PUT',
         body: data,
       }),
-      invalidatesTags: (result, error, { id, officeLevel, parentOffice }) => {
-        const tags = [
-          { type: 'Office', id },
-          { type: 'Office', id: 'LIST' },
-          { type: officeLevel, id },
-          { type: officeLevel, id: 'LIST' }
-        ];
-        
-        if (parentOffice) {
-          if (officeLevel === 'TEHSIL') {
-            tags.push({ type: 'Tehsil', id: parentOffice });
-          } else if (officeLevel === 'GRAM') {
-            tags.push({ type: 'Gram', id: parentOffice });
-          }
-        }
-        
-        return tags;
-      },
+      invalidatesTags: [{ type: 'Office', id: 'LIST' }],
     }),
 
- deActivateOffice: builder.mutation({
-  query: (id) => ({
-    url: `/admin/offices/${id}/deActivate`,
-    method: 'PATCH',
-  }),
-  invalidatesTags: (result, error, id) => [
+    deActivateOffice: builder.mutation({
+      query: (id) => ({
+        url: `/admin/offices/${id}/deActivate`,
+        method: 'PATCH',
+      }),
+      invalidatesTags: (result, error, id) => [
         { type: 'Office', id: 'LIST' },
         { type: 'District', id: 'LIST' },
         { type: 'Tehsil', id: 'LIST' },
         { type: 'Gram', id: 'LIST' },
         { type: 'Office', id }
       ]
-}),
+    }),
 
-activateOffice: builder.mutation({
-  query: (id) => ({
-    url: `/admin/offices/${id}/activate`,
-    method: 'PATCH',
-  }),
-  invalidatesTags: (result, error, id) => [
+    activateOffice: builder.mutation({
+      query: (id) => ({
+        url: `/admin/offices/${id}/activate`,
+        method: 'PATCH',
+      }),
+      invalidatesTags: (result, error, id) => [
         { type: 'Office', id: 'LIST' },
         { type: 'District', id: 'LIST' },
         { type: 'Tehsil', id: 'LIST' },
         { type: 'Gram', id: 'LIST' },
         { type: 'Office', id }
       ]
-}),
+    }),
+
+    getAllCitizen: builder.query({
+      query: () => ({
+        url: "/admin/get-all-citizen",
+        method: "GET"
+      })
+    }),
+
+    lockCitizen: builder.mutation({
+      query: ({ id, reason }) => ({
+        url: `/admin/citizens/${id}/lock`,
+        method: 'PATCH',
+        body: { reason }
+      }),
+      invalidatesTags: ['Citizen'],
+    }),
+
+    unlockCitizen: builder.mutation({
+      query: (id) => ({
+        url: `/admin/citizens/${id}/unlock`,
+        method: 'PATCH',
+      }),
+      invalidatesTags: ['Citizen'],
+    }),
+
+    //setting-template
+    getSystemSettings: builder.query({
+      query: () => "/admin/system-settings",
+      providesTags: ['Settings'],
+    }),
+
+    updateSystemSettings: builder.mutation({
+      query: (data) => ({
+        url: "/admin/system-settings",
+        method: "PUT",
+        body: data,
+      }),
+      invalidatesTags: ['Settings'],
+    }),
+
+
 
   })
 });
 
 export const {
-   useCreateOfficerMutation,
-   useGetAllOfficersQuery,
-   useCreateOfficeMutation,
-   useUpdateOfficeMutation,
-   useDeActivateOfficeMutation,
-   useActivateOfficeMutation
-}=adminApi;
+  useCreateOfficerMutation,
+  useGetAllOfficersQuery,
+  useUpdateOfficerMutation,
+  useUnlockOfficerMutation,
+  useLockOfficerMutation,
+  useDeactivateOfficerMutation,
+  useActivateOfficerMutation,
+  useResetPasswordMutation,
+  useGetExpiredPasswordUsersQuery,
+  useCreateOfficeMutation,
+  useUpdateOfficeMutation,
+  useDeActivateOfficeMutation,
+  useActivateOfficeMutation,
+  useGetAllCitizenQuery,
+  useLockCitizenMutation,
+  useUnlockCitizenMutation,
+  useGetSystemSettingsQuery,
+  useUpdateSystemSettingsMutation
+} = adminApi;

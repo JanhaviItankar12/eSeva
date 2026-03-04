@@ -94,6 +94,7 @@ lastPasswordResetAt: Date,
   lockedAt: Date,
   deactivatedAt: Date,
   loginAttempts: { type: Number, default: 0 },
+  lastLogin:Date,
 
   address: {
     district: { type: String },

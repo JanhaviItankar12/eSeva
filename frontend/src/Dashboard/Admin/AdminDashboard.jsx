@@ -71,7 +71,8 @@ import SystemLogs from './SideBar/SystemLogs';
 import BackupRestorePage from './SideBar/BackupStore';
 import ExportData from './SideBar/ExportData';
 import GlobalSetting from './SideBar/GlobalSetting';
-import ShowAllUser from './SideBar/ShowAllUser';
+import AllCitizen from './SideBar/AllCitizen';
+
 
 // Mock Data for System Admin Dashboard
 
@@ -402,7 +403,7 @@ export default function AdminDashboard() {
                   <button  onClick={() => setActiveSection('show-user')}
                    className="w-full flex items-center space-x-3 px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
                     <UserPlus className="w-5 h-5" />
-                    <span className="text-sm font-medium">Show All Users</span>
+                    <span className="text-sm font-medium">Show All Citizens</span>
                   </button>
                   
                 </div>
@@ -880,7 +881,7 @@ export default function AdminDashboard() {
           )}
 
           {activeSection === 'show-user' && (
-            <ShowAllUser/>
+            <AllCitizen/>
           )}
 
 

@@ -672,4 +672,190 @@ export const activateOffice = async (req, res) => {
 };
 
 
+export const getActiveDistricts = async (req, res) => {
+  try {
+    const districts = await Office.aggregate([
+      {
+        $match: {
+          officeLevel: "DISTRICT",
+          isActive: true
+        }
+      },
+      {
+        $lookup: {
+          from: "offices", // collection name (lowercase plural usually)
+          localField: "_id",
+          foreignField: "parentOffice",
+          as: "tehsils"
+        }
+      },
+      {
+        $addFields: {
+          tehsilCount: {
+            $size: {
+              $filter: {
+                input: "$tehsils",
+                as: "tehsil",
+                cond:  {
+                  $and: [
+                    { $eq: ["$$tehsil.officeLevel", "TEHSIL"] },
+                    { $eq: ["$$tehsil.isActive", true] }  //  Only active tehsils count
+                  ]
+                } 
+              }
+            }
+          }
+        }
+      },
+      {
+        $project: {
+          officeName: 1,
+          region: 1,
+          pincode: 1,
+          address: 1,
+          isActive: 1,
+          tehsilCount: 1
+        }
+      },
+      {
+        $sort: { officeName: 1 }
+      }
+    ]);
+
+    res.json({
+      success: true,
+      count: districts.length,
+      data: districts
+    });
+
+  } catch (error) {
+    console.error("Get Districts Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch districts",
+      error: error.message
+    });
+  }
+};
+
+export const getActiveTehsilsByDistrict = async (req, res) => {
+  try {
+    const { districtId } = req.params;
+
+    const district = await Office.findOne({
+      _id: districtId,
+      officeLevel: "DISTRICT",
+      isActive: true   //  district must be active
+    });
+
+    if (!district) {
+      return res.status(404).json({
+        success: false,
+        message: "District not found or inactive"
+      });
+    }
+
+    const tehsils = await Office.aggregate([
+      {
+        $match: {
+          officeLevel: "TEHSIL",
+          parentOffice: district._id,
+          isActive: true   //  only active tehsils
+        }
+      },
+      {
+        $lookup: {
+          from: "offices",
+          let: { tehsilId: "$_id" },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $eq: ["$parentOffice", "$$tehsilId"] },
+                    { $eq: ["$officeLevel", "GRAM"] },
+                    { $eq: ["$isActive", true] }   //  only active grams
+                  ]
+                }
+              }
+            }
+          ],
+          as: "grams"
+        }
+      },
+      {
+        $addFields: {
+          gramCount: { $size: "$grams" }
+        }
+      },
+      {
+        $project: {
+          officeName: 1,
+          pincode: 1,
+          address: 1,
+          gramCount: 1
+        }
+      },
+      { $sort: { officeName: 1 } }
+    ]);
+
+    res.json({
+      success: true,
+      count: tehsils.length,
+      data: tehsils
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch tehsils",
+      error: error.message
+    });
+  }
+};
+
+export const getActiveGramPanchayatsByTehsil = async (req, res) => {
+  try {
+    const { tehsilId } = req.params;
+
+    const tehsil = await Office.findOne({
+      _id: tehsilId,
+      officeLevel: "TEHSIL",
+      isActive: true   // tehsil must be active
+    });
+
+    if (!tehsil) {
+      return res.status(404).json({
+        success: false,
+        message: "Tehsil not found or inactive"
+      });
+    }
+
+    const gramPanchayats = await Office.find({
+      officeLevel: "GRAM",
+      parentOffice: tehsilId,
+      isActive: true   // only active grams
+    })
+      .select("officeName pincode address")
+      .sort({ officeName: 1 });
+
+    res.json({
+      success: true,
+      count: gramPanchayats.length,
+      data: gramPanchayats
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch gram panchayats",
+      error: error.message
+    });
+  }
+};
+
+
+
+
+
 

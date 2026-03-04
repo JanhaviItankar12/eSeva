@@ -111,7 +111,21 @@ const systemSettingsSchema = new mongoose.Schema({
   // Maintenance
   maintenanceMode: Boolean,
   maintenanceMessage: String,
-  allowAdminsDuringMaintenance: Boolean
+  allowAdminsDuringMaintenance: Boolean,
+
+  rejectionTemplates: [
+  {
+    title: String,
+    message: String
+  }
+],
+
+approvalTemplates: [
+  {
+    title: String,
+    message: String
+  }
+],
 
 }, { timestamps: true });
 

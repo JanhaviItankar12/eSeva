@@ -11,14 +11,14 @@ export const officeApi = createApi({
         headers.set("authorization", `Bearer ${token}`);
       }
 
-      
+
       return headers;
     },
   }),
 
   tagTypes: ['Office', 'District', 'Tehsil', 'Gram'],
-    endpoints: (builder) => ({
-      getOffices: builder.query({
+  endpoints: (builder) => ({
+    getOffices: builder.query({
       query: ({ level, district, tehsil } = {}) => {
         let url = '/offices';
         const params = new URLSearchParams();
@@ -28,7 +28,7 @@ export const officeApi = createApi({
         if (params.toString()) url += `?${params.toString()}`;
         return url;
       },
-       providesTags: (result) => {
+      providesTags: (result) => {
         const tags = [{ type: 'Office', id: 'LIST' }];
         if (result?.data) {
           result.data.forEach((office) => {
@@ -47,45 +47,85 @@ export const officeApi = createApi({
       },
     }),
     getDistricts: builder.query({
-  query: () => '/offices/districts',
-  providesTags: (result) =>
-    result?.data
-      ? [
-          ...result.data.map(({ _id }) => ({
-            type: 'District',
-            id: _id
-          })),
-          { type: 'District', id: 'LIST' }
-        ]
-      : [{ type: 'District', id: 'LIST' }]
-}),
-   getTehsils: builder.query({
-  query: (districtId) => `/offices/tehsils/${districtId}`,
-  providesTags: (result, error, districtId) =>
-    result?.data
-      ? [
-          ...result.data.map(({ _id }) => ({
-            type: 'Tehsil',
-            id: _id
-          })),
-          { type: 'Tehsil', id: 'LIST' }
-        ]
-      : [{ type: 'Tehsil', id: 'LIST' }]
-}),
-  getGramPanchayats: builder.query({
-  query: (tehsilId) => `/offices/gram-panchayats/${tehsilId}`,
-  providesTags: (result) =>
-    result?.data
-      ? [
-          ...result.data.map(({ _id }) => ({
-            type: 'Gram',
-            id: _id
-          })),
-          { type: 'Gram', id: 'LIST' }
-        ]
-      : [{ type: 'Gram', id: 'LIST' }]
-}),
-    
+      query: () => '/offices/districts',
+      providesTags: (result) =>
+        result?.data
+          ? [
+            ...result.data.map(({ _id }) => ({
+              type: 'District',
+              id: _id
+            })),
+            { type: 'District', id: 'LIST' }
+          ]
+          : [{ type: 'District', id: 'LIST' }]
+    }),
+    getTehsils: builder.query({
+      query: (districtId) => `/offices/tehsils/${districtId}`,
+      providesTags: (result, error, districtId) =>
+        result?.data
+          ? [
+            ...result.data.map(({ _id }) => ({
+              type: 'Tehsil',
+              id: _id
+            })),
+            { type: 'Tehsil', id: 'LIST' }
+          ]
+          : [{ type: 'Tehsil', id: 'LIST' }]
+    }),
+    getGramPanchayats: builder.query({
+      query: (tehsilId) => `/offices/gram-panchayats/${tehsilId}`,
+      providesTags: (result) =>
+        result?.data
+          ? [
+            ...result.data.map(({ _id }) => ({
+              type: 'Gram',
+              id: _id
+            })),
+            { type: 'Gram', id: 'LIST' }
+          ]
+          : [{ type: 'Gram', id: 'LIST' }]
+    }),
+
+     getActiveDistricts: builder.query({
+      query: () => '/offices/districts/active',
+      providesTags: (result) =>
+        result?.data
+          ? [
+            ...result.data.map(({ _id }) => ({
+              type: 'District',
+              id: _id
+            })),
+            { type: 'District', id: 'LIST' }
+          ]
+          : [{ type: 'District', id: 'LIST' }]
+    }),
+    getActiveTehsils: builder.query({
+      query: (districtId) => `/offices/tehsils/${districtId}/active`,
+      providesTags: (result, error, districtId) =>
+        result?.data
+          ? [
+            ...result.data.map(({ _id }) => ({
+              type: 'Tehsil',
+              id: _id
+            })),
+            { type: 'Tehsil', id: 'LIST' }
+          ]
+          : [{ type: 'Tehsil', id: 'LIST' }]
+    }),
+    getActiveGramPanchayats: builder.query({
+      query: (tehsilId) => `/offices/gram-panchayats/${tehsilId}/active`,
+      providesTags: (result) =>
+        result?.data
+          ? [
+            ...result.data.map(({ _id }) => ({
+              type: 'Gram',
+              id: _id
+            })),
+            { type: 'Gram', id: 'LIST' }
+          ]
+          : [{ type: 'Gram', id: 'LIST' }]
+    }),
+
     getOfficeById: builder.query({
       query: (id) => `/offices/${id}`,
       providesTags: (result, error, id) => {
@@ -104,14 +144,17 @@ export const officeApi = createApi({
     }),
 
 
-    })
+  })
 });
 
 export const {
-    useGetOfficesQuery,
-    useGetDistrictsQuery,
-    useGetTehsilsQuery,
-    useGetGramPanchayatsQuery,
-    useGetOfficeByIdQuery
+  useGetOfficesQuery,
+  useGetDistrictsQuery,
+  useGetTehsilsQuery,
+  useGetGramPanchayatsQuery,
+  useGetOfficeByIdQuery,
+  useGetActiveDistrictsQuery,
+  useGetActiveTehsilsQuery,
+  useGetActiveGramPanchayatsQuery
 
-}=officeApi;
+} = officeApi;

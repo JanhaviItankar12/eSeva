@@ -687,6 +687,43 @@ const OfficeSetupPage = () => {
     setCurrentPage(Math.max(1, Math.min(page, totalPages)));
   };
 
+  // Add this function to get all tehsils for dropdown
+const getAllTehsils = () => {
+  const allTehsils = [];
+  
+  districts.forEach(district => {
+    if (district.tehsils && Array.isArray(district.tehsils)) {
+      allTehsils.push(...district.tehsils);
+    }
+  });
+  
+  // If you have tehsils loaded via the API response
+  if (tehsilsResponse?.data && Array.isArray(tehsilsResponse.data)) {
+    tehsilsResponse.data.forEach(tehsil => {
+      if (!allTehsils.find(t => t._id === tehsil._id)) {
+        allTehsils.push(tehsil);
+      }
+    });
+  }
+  
+  return allTehsils;
+};
+
+// Add this useEffect
+useEffect(() => {
+  if (showGramModal && districts.length > 0) {
+    // If you need to ensure tehsils are loaded
+    districts.forEach(district => {
+      if (district.tehsils?.length > 0) {
+        // Tehsils are already loaded
+      } else {
+        // Trigger loading of tehsils if needed
+        setSelectedDistrictId(district._id);
+      }
+    });
+  }
+}, [showGramModal, districts]);
+
   return (
     <div className="space-y-6">
       {/* Toast */}
@@ -1518,22 +1555,27 @@ const OfficeSetupPage = () => {
                 <label className="block text-xs font-medium text-gray-700 mb-1">
                   Parent Tehsil <span className="text-red-500">*</span>
                 </label>
-                <select
-                  value={gramForm.parentOffice}
-                  onChange={(e) => setGramForm({ ...gramForm, parentOffice: e.target.value })}
-                  className={`w-full px-3 py-2 text-sm border rounded-lg ${errors.parentOffice ? 'border-red-500' : 'border-gray-300'
-                    } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
-                >
-                  <option value="">Select Tehsil</option>
-                  {tehsilsMap && Object.values(tehsilsMap).flat().map(tehsil => {
-                    const parentDistrict = districts.find(d => d._id === tehsil.parentOffice);
-                    return (
-                      <option key={tehsil._id} value={tehsil._id}>
-                        {tehsil.officeName} {parentDistrict ? `(${parentDistrict.officeName})` : ''}
-                      </option>
-                    );
-                  })}
-                </select>
+               {/* Replace the problematic select section */}
+<select
+  value={gramForm.parentOffice}
+  onChange={(e) => setGramForm({ ...gramForm, parentOffice: e.target.value })}
+  className={`w-full px-3 py-2 text-sm border rounded-lg ${errors.parentOffice ? 'border-red-500' : 'border-gray-300'
+    } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+>
+  <option value="">Select Tehsil</option>
+  {getAllTehsils().map(tehsil => {
+    // Find parent district for context
+    const parentDistrict = districts.find(d => 
+      d._id === (tehsil.parentOffice?._id || tehsil.parentOffice)
+    );
+    return (
+      <option key={tehsil._id} value={tehsil._id}>
+        {tehsil.officeName} 
+        {parentDistrict ? ` (${parentDistrict.officeName} District)` : ''}
+      </option>
+    );
+  })}
+</select>
                 {errors.parentOffice && <p className="mt-1 text-xs text-red-600">{errors.parentOffice}</p>}
               </div>
 
