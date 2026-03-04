@@ -5,6 +5,7 @@ import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 import User from "../models/user.js";
 
+
 mongoose.connect(process.env.MONGO_URI);
 
 async function createAdmin() {
@@ -15,12 +16,12 @@ async function createAdmin() {
     process.exit();
   }
 
-  const hashedPassword = await bcrypt.hash(process.env.ADMIN_PASSWORD, 10);
+ 
 
   await User.create({
     name: "Super Admin",
     email: process.env.ADMIN_EMAIL,
-    password: hashedPassword,
+    password: process.env.ADMIN_PASSWORD,
     role: "ADMIN"
   });
 

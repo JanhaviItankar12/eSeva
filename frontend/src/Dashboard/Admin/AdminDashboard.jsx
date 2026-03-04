@@ -61,7 +61,8 @@ import {
   Archive,
   Clock as ClockIcon,
   AlertCircle,
-  Info
+  Info,
+  HomeIcon
 } from 'lucide-react';
 import UserManagement from './SideBar/UserManagement';
 import DocumentConfiguration from './SideBar/DocumentConfiguration';
@@ -361,9 +362,11 @@ export default function AdminDashboard() {
           {/* Logo */}
           <div className="h-16 flex items-center px-6 border-b border-gray-200">
             <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-blue-800 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-lg">eS</span>
-              </div>
+              <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+              <rect width="32" height="32" rx="6" fill="#1e40af"/>
+              <path d="M16 8L20 12H18V20H14V12H12L16 8Z" fill="white"/>
+              <rect x="10" y="21" width="12" height="2" fill="white"/>
+            </svg>
               <div>
                 <div className="text-sm font-semibold text-gray-900">eSeva Admin</div>
                 <div className="text-xs text-gray-500">System Control</div>
@@ -388,7 +391,7 @@ export default function AdminDashboard() {
                 <p className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">User Management</p>
                 <div className="mt-2 space-y-1">
                   <button
-                    onClick={() => setActiveSection('users')}
+                    onClick={() => setActiveSection('create-officers')}
                     className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors ${
                       activeSection === 'users' ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-100'
                     }`}
@@ -619,7 +622,8 @@ export default function AdminDashboard() {
                       <span className="text-lg font-bold text-red-600">{mockUserStats.failedLogins}</span>
                     </div>
                   </div>
-                  <button className="mt-4 w-full text-center text-sm text-blue-600 hover:text-blue-800 font-medium">
+                  <button onClick={() => setActiveSection('show-user')}
+                   className="mt-4 w-full text-center text-sm text-blue-600 hover:text-blue-800 font-medium">
                     View All Users →
                   </button>
                 </div>
@@ -652,7 +656,8 @@ export default function AdminDashboard() {
                       <span className="text-lg font-bold text-gray-500">{mockOfficeStats.inactiveOffices}</span>
                     </div>
                   </div>
-                  <button className="mt-4 w-full text-center text-sm text-blue-600 hover:text-blue-800 font-medium">
+                  <button  onClick={() => setActiveSection('offices')}
+                   className="mt-4 w-full text-center text-sm text-blue-600 hover:text-blue-800 font-medium">
                     Manage Offices →
                   </button>
                 </div>
@@ -679,7 +684,8 @@ export default function AdminDashboard() {
                       </span>
                     </div>
                   </div>
-                  <button className="mt-4 w-full text-center text-sm text-blue-600 hover:text-blue-800 font-medium">
+                  <button onClick={() => setActiveSection('documents')}
+                   className="mt-4 w-full text-center text-sm text-blue-600 hover:text-blue-800 font-medium">
                     Configure Documents →
                   </button>
                 </div>
@@ -758,7 +764,8 @@ export default function AdminDashboard() {
                     ))}
                   </div>
                   <div className="p-4 border-t border-gray-200">
-                    <button className="w-full text-center text-sm text-blue-600 hover:text-blue-800 font-medium">
+                    <button onClick={() => setActiveSection('logs')}
+                     className="w-full text-center text-sm text-blue-600 hover:text-blue-800 font-medium">
                       View All Logs →
                     </button>
                   </div>
@@ -769,19 +776,23 @@ export default function AdminDashboard() {
               <div className="bg-white rounded-xl border border-gray-200 p-6">
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <button className="p-4 bg-blue-50 hover:bg-blue-100 rounded-xl text-center transition-colors">
+                  <button onClick={() => setActiveSection('create-officers')}
+                   className="p-4 bg-blue-50 hover:bg-blue-100 rounded-xl text-center transition-colors">
                     <UserPlus className="w-6 h-6 text-blue-600 mx-auto mb-2" />
-                    <span className="text-xs font-medium text-blue-700">Create User</span>
+                    <span className="text-xs font-medium text-blue-700">Create Officers</span>
                   </button>
-                  <button className="p-4 bg-purple-50 hover:bg-purple-100 rounded-xl text-center transition-colors">
-                    <Key className="w-6 h-6 text-purple-600 mx-auto mb-2" />
-                    <span className="text-xs font-medium text-purple-700">Reset Password</span>
+                  <button onClick={() => setActiveSection('offices')}
+                   className="p-4 bg-purple-50 hover:bg-purple-100 rounded-xl text-center transition-colors">
+                    <Building2 className="w-6 h-6 text-purple-600 mx-auto mb-2" />
+                    <span className="text-xs font-medium text-purple-700">Create Offices</span>
                   </button>
-                  <button className="p-4 bg-green-50 hover:bg-green-100 rounded-xl text-center transition-colors">
+                  <button onClick={() => setActiveSection('backup')}
+                   className="p-4 bg-green-50 hover:bg-green-100 rounded-xl text-center transition-colors">
                     <Database className="w-6 h-6 text-green-600 mx-auto mb-2" />
                     <span className="text-xs font-medium text-green-700">Backup Now</span>
                   </button>
-                  <button className="p-4 bg-orange-50 hover:bg-orange-100 rounded-xl text-center transition-colors">
+                  <button onClick={() => setActiveSection('global-setting')}
+                   className="p-4 bg-orange-50 hover:bg-orange-100 rounded-xl text-center transition-colors">
                     <Settings className="w-6 h-6 text-orange-600 mx-auto mb-2" />
                     <span className="text-xs font-medium text-orange-700">System Settings</span>
                   </button>
@@ -836,7 +847,7 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          {activeSection === 'users' && (
+          {activeSection === 'create-officers' && (
              <UserManagement
         users={users} // Your users array
         onUserCreate={handleUserCreate}

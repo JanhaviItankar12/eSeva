@@ -27,32 +27,36 @@ function App() {
 
         {/* citizen routes */}
         <Route path="/citizen/dashboard/:id" element={
-           <ProtectedRoute>
+           <ProtectedRoute requiredRole="CITIZEN">
           <CitizenDashboard/>
            </ProtectedRoute>
           } />
         <Route path="/citizen/new-application/:id" element={
-          <ProtectedRoute>
+          <ProtectedRoute requiredRole="CITIZEN">
           <NewApplication/>
           </ProtectedRoute>} />
           
         <Route path="/citizen/profile/:id" element={
-          <ProtectedRoute>
+          <ProtectedRoute requiredRole="CITIZEN">
           <ProfileSetting/>
           </ProtectedRoute>} />
         <Route path="/citizen/my-applications/:id" element={
-          <ProtectedRoute>
+          <ProtectedRoute requiredRole="CITIZEN">
           <MyApplication/>
           </ProtectedRoute>
           } />
         <Route path="/citizen/track-applications/:id" element={
-         <ProtectedRoute>
+         <ProtectedRoute requiredRole="CITIZEN">
           <TrackApplication/>
         </ProtectedRoute>}
            />
 
 
-        <Route path="/admin/dashboard" element={<AdminDashboard/>} />
+        <Route path="/admin/dashboard" element=
+         { <ProtectedRoute requiredRole="ADMIN">
+         <AdminDashboard/>
+         </ProtectedRoute>
+         } />
       </Routes>
     </Router>
   );
