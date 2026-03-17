@@ -9,6 +9,12 @@ const applicationSchema = new mongoose.Schema({
     required: true
   },
 
+  certificateId: {
+  type: mongoose.Schema.Types.ObjectId,
+  ref: "Certificate",
+  required: true
+},
+
 
 
   certificateData: {

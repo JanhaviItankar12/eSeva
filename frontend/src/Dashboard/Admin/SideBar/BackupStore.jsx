@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Database,
   HardDrive,
@@ -36,226 +36,352 @@ import {
   FileText,
   Users,
   Building2,
-  Layers
+  Layers,
+  Edit3,
+  XCircle as XCircleIcon
 } from 'lucide-react';
+import { 
+  useCreateBackupMutation, 
+  useGetBackupsQuery, 
+  useGetSchedulesQuery, 
+  useGetStorageQuery,
+  useRestoreBackupMutation,
+  useDeleteBackupMutation,
+  useCreateScheduleMutation,
+  useUpdateScheduleMutation,
+  useDeleteScheduleMutation,
+  useToggleScheduleMutation,
+  useUpdateBackupSettingsMutation,
+  useGetBackupSettingsQuery
+} from '../../../features/api/adminApi';
 
-// Mock backup history data
-const mockBackupHistory = [
-  {
-    id: "BCK001",
-    name: "Full System Backup",
-    type: "auto",
-    status: "success",
-    size: "2.4 GB",
-    duration: "45 seconds",
-    location: "/backups/auto/2026-02-23",
-    files: 1245,
-    databases: ["users", "applications", "documents", "offices"],
-    timestamp: "2026-02-23T03:00:00Z",
-    createdBy: "system",
-    checksum: "sha256:7d8f9e2a1b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e",
-    compression: "gzip",
-    encryption: "AES-256",
-    retention: "30 days"
-  },
-  {
-    id: "BCK002",
-    name: "Full System Backup",
-    type: "auto",
-    status: "success",
-    size: "2.3 GB",
-    duration: "42 seconds",
-    location: "/backups/auto/2026-02-22",
-    files: 1245,
-    databases: ["users", "applications", "documents", "offices"],
-    timestamp: "2026-02-22T03:00:00Z",
-    createdBy: "system",
-    checksum: "sha256:1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b",
-    compression: "gzip",
-    encryption: "AES-256",
-    retention: "30 days"
-  },
-  {
-    id: "BCK003",
-    name: "Full System Backup",
-    type: "auto",
-    status: "success",
-    size: "2.3 GB",
-    duration: "44 seconds",
-    location: "/backups/auto/2026-02-21",
-    files: 1245,
-    databases: ["users", "applications", "documents", "offices"],
-    timestamp: "2026-02-21T03:00:00Z",
-    createdBy: "system",
-    checksum: "sha256:9b8c7d6e5f4a3b2c1d0e9f8a7b6c5d4e3f2a1b0c",
-    compression: "gzip",
-    encryption: "AES-256",
-    retention: "30 days"
-  },
-  {
-    id: "BCK004",
-    name: "Pre-Update Backup",
-    type: "manual",
-    status: "success",
-    size: "2.2 GB",
-    duration: "38 seconds",
-    location: "/backups/manual/2026-02-20",
-    files: 1245,
-    databases: ["users", "applications", "documents", "offices"],
-    timestamp: "2026-02-20T15:30:00Z",
-    createdBy: "admin@eseva.gov.in",
-    createdByName: "System Admin",
-    reason: "Before system update v2.1.0",
-    checksum: "sha256:8a7b6c5d4e3f2a1b0c9d8e7f6a5b4c3d2e1f0a9b8c",
-    compression: "gzip",
-    encryption: "AES-256",
-    retention: "30 days"
-  },
-  {
-    id: "BCK005",
-    name: "Weekly Full Backup",
-    type: "auto",
-    status: "warning",
-    size: "1.8 GB",
-    duration: "30 seconds",
-    location: "/backups/auto/2026-02-19",
-    files: 1023,
-    databases: ["users", "applications", "offices"],
-    timestamp: "2026-02-19T03:00:00Z",
-    createdBy: "system",
-    warning: "Documents database was locked during backup",
-    checksum: "sha256:7a6b5c4d3e2f1a0b9c8d7e6f5a4b3c2d1e0f9a8b7c",
-    compression: "gzip",
-    encryption: "AES-256",
-    retention: "30 days"
-  },
-  {
-    id: "BCK006",
-    name: "Emergency Backup",
-    type: "manual",
-    status: "failed",
-    size: "0 GB",
-    duration: "5 seconds",
-    location: null,
-    files: 0,
-    databases: [],
-    timestamp: "2026-02-18T22:15:00Z",
-    createdBy: "admin@eseva.gov.in",
-    createdByName: "System Admin",
-    error: "Insufficient disk space",
-    failureReason: "Disk full",
-    retention: "N/A"
-  }
-];
-
-// Mock backup schedules
-const mockSchedules = [
-  {
-    id: "SCH001",
-    name: "Daily Incremental Backup",
-    type: "incremental",
-    frequency: "daily",
-    time: "03:00",
-    databases: ["applications", "documents"],
-    retention: "7 days",
-    status: "active",
-    lastRun: "2026-02-23T03:00:00Z",
-    nextRun: "2026-02-24T03:00:00Z",
-    compression: true,
-    encryption: true,
-    notification: true
-  },
-  {
-    id: "SCH002",
-    name: "Daily Full Backup",
-    type: "full",
-    frequency: "daily",
-    time: "02:00",
-    databases: ["users", "offices", "configurations"],
-    retention: "30 days",
-    status: "active",
-    lastRun: "2026-02-23T02:00:00Z",
-    nextRun: "2026-02-24T02:00:00Z",
-    compression: true,
-    encryption: true,
-    notification: true
-  },
-  {
-    id: "SCH003",
-    name: "Weekly Full Backup",
-    type: "full",
-    frequency: "weekly",
-    day: "sunday",
-    time: "01:00",
-    databases: ["all"],
-    retention: "90 days",
-    status: "active",
-    lastRun: "2026-02-22T01:00:00Z",
-    nextRun: "2026-03-01T01:00:00Z",
-    compression: true,
-    encryption: true,
-    notification: true
-  },
-  {
-    id: "SCH004",
-    name: "Monthly Archive",
-    type: "full",
-    frequency: "monthly",
-    day: "1",
-    time: "00:00",
-    databases: ["all"],
-    retention: "1 year",
-    status: "inactive",
-    lastRun: "2026-02-01T00:00:00Z",
-    nextRun: "2026-03-01T00:00:00Z",
-    compression: true,
-    encryption: true,
-    notification: true
-  }
-];
-
-// Mock storage info
-const mockStorage = {
-  total: "100 GB",
-  used: "68.5 GB",
-  free: "31.5 GB",
-  usagePercentage: 68.5,
-  backups: "45.2 GB",
-  databases: "23.3 GB",
-  files: "15.8 GB",
-  logs: "4.2 GB"
+// Helper function to format bytes to human readable
+const formatBytes = (bytes, decimals = 2) => {
+  if (bytes === 0) return '0 Bytes';
+  const k = 1024;
+  const dm = decimals < 0 ? 0 : decimals;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
 };
 
-// Database sizes
-const mockDatabaseSizes = [
-  { name: "users", size: "5.2 GB", count: 1248 },
-  { name: "applications", size: "8.7 GB", count: 4560 },
-  { name: "documents", size: "6.3 GB", count: 12500 },
-  { name: "offices", size: "1.1 GB", count: 1342 },
-  { name: "logs", size: "2.0 GB", count: 250000 }
-];
+// Helper function to format date
+const formatDate = (dateString) => {
+  if (!dateString) return 'N/A';
+  const date = new Date(dateString);
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  
+  if (date.toDateString() === today.toDateString()) {
+    return `Today at ${date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`;
+  } else if (date.toDateString() === yesterday.toDateString()) {
+    return `Yesterday at ${date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`;
+  } else {
+    return date.toLocaleString('en-IN', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  }
+};
+
+// Helper function to get status color
+const getStatusColor = (status) => {
+  const colors = {
+    'completed': 'bg-green-100 text-green-800',
+    'success': 'bg-green-100 text-green-800',
+    'failed': 'bg-red-100 text-red-800',
+    'in_progress': 'bg-blue-100 text-blue-800',
+    'warning': 'bg-yellow-100 text-yellow-800',
+    'active': 'bg-green-100 text-green-800',
+    'inactive': 'bg-gray-100 text-gray-800'
+  };
+  return colors[status] || 'bg-gray-100 text-gray-800';
+};
 
 const BackupRestorePage = () => {
-  const [backups, setBackups] = useState(mockBackupHistory);
-  const [schedules, setSchedules] = useState(mockSchedules);
-  const [storage] = useState(mockStorage);
-  const [databaseSizes] = useState(mockDatabaseSizes);
-  const [activeTab, setActiveTab] = useState('backups'); // 'backups', 'schedules', 'storage', 'settings'
+  // API Hooks
+  const [createBackup, { isLoading: isCreatingBackup }] = useCreateBackupMutation();
+  const [restoreBackup, { isLoading: isRestoringBackup }] = useRestoreBackupMutation();
+  const [deleteBackup, { isLoading: isDeletingBackup }] = useDeleteBackupMutation();
+  const [createSchedule, { isLoading: isCreatingSchedule }] = useCreateScheduleMutation();
+  const [updateSchedule, { isLoading: isUpdatingSchedule }] = useUpdateScheduleMutation();
+  const [deleteSchedule, { isLoading: isDeletingSchedule }] = useDeleteScheduleMutation();
+  const [toggleSchedule, { isLoading: isTogglingSchedule }] = useToggleScheduleMutation();
+  const [updateSettings, { isLoading: isUpdatingSettings }] = useUpdateBackupSettingsMutation();
+
+  // Queries
+  const { 
+    data: backupsData, 
+    isLoading: isLoadingBackups, 
+    refetch: refetchBackups 
+  } = useGetBackupsQuery();
+  
+  const { 
+    data: schedulesData, 
+    isLoading: isLoadingSchedules, 
+    refetch: refetchSchedules 
+  } = useGetSchedulesQuery();
+  
+  const { 
+    data: storageData, 
+    isLoading: isLoadingStorage, 
+    refetch: refetchStorage 
+  } = useGetStorageQuery();
+
+   const { 
+    data: backupSettingData, 
+    isLoading: isLoadingbackupSetting, 
+    refetch: refetchBackup 
+  } = useGetBackupSettingsQuery();
+
+  const BackupSettingData=backupSettingData?.backupSettingData;
+  
+
+
+  // Local state
+  const [backups, setBackups] = useState([]);
+  const [schedules, setSchedules] = useState([]);
+  const [storage, setStorage] = useState(null);
+  const [databaseSizes, setDatabaseSizes] = useState([]);
+  
+  const [activeTab, setActiveTab] = useState('backups');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedType, setSelectedType] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [expandedBackup, setExpandedBackup] = useState(null);
   const [selectedBackup, setSelectedBackup] = useState(null);
+  const [selectedSchedule, setSelectedSchedule] = useState(null);
   const [showBackupModal, setShowBackupModal] = useState(false);
   const [showRestoreModal, setShowRestoreModal] = useState(false);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
-  const [isBackingUp, setIsBackingUp] = useState(false);
   const [backupProgress, setBackupProgress] = useState(0);
-  const [isRestoring, setIsRestoring] = useState(false);
   const [restoreProgress, setRestoreProgress] = useState(0);
+  const [settings, setSettings] = useState({
+  defaultLocation: '',
+  backupRetention: '',
+  maxBackupSize: 100,
+  compressionLevel: 'balanced',
+  encryption: true,
+  verifyIntegrity: true,
+  emailNotification: true,
+  createRestorePoint: true,
+  verifyAfterRestore: true,
+  maintainDuringRestore: true,
+  rto: '4',
+  rpo: '4'
+});
+
+useEffect(() => {
+  if (BackupSettingData) {
+    setSettings({
+      defaultLocation: BackupSettingData.defaultBackupLocation || '/backups',
+      backupRetention: BackupSettingData.backupRetention || 7,
+      maxBackupSize: BackupSettingData.maxBackupSize || 100,
+      compressionLevel: BackupSettingData.compressionLevel || 'balanced',
+      encryption: BackupSettingData.enableCompression ?? true,
+      verifyIntegrity: BackupSettingData.verifyIntegrity ?? true,
+      emailNotification: BackupSettingData.enableEmailNotifications ?? true,
+      createRestorePoint: BackupSettingData.createRestorePoint ?? true,
+      verifyAfterRestore: BackupSettingData.verifyAfterRestore ?? true,
+      maintainDuringRestore: BackupSettingData.maintainDuringRestore ?? true,
+      rto: BackupSettingData.rto || '4',
+      rpo: BackupSettingData.rpo || '4'
+    });
+  }
+}, [BackupSettingData]);
+  // Update local state when API data changes
+  useEffect(() => {
+    if (backupsData?.data) {
+      setBackups(backupsData.data);
+    }
+  }, [backupsData]);
+
+  useEffect(() => {
+    if (schedulesData?.data) {
+      setSchedules(schedulesData.data);
+    }
+  }, [schedulesData]);
+
+  useEffect(() => {
+    if (storageData) {
+      setStorage(storageData.storage);
+      setDatabaseSizes(storageData.databases || []);
+      if (storageData.settings) {
+        setSettings(prev => ({ ...prev, ...storageData.settings }));
+      }
+    }
+  }, [storageData]);
+
+  // Filter backups
+  const filteredBackups = backups.filter(backup => {
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      const matches = 
+        backup.name?.toLowerCase().includes(searchLower) ||
+        backup.id?.toLowerCase().includes(searchLower) ||
+        backup.createdBy?.toLowerCase().includes(searchLower);
+      if (!matches) return false;
+    }
+    if (selectedType !== 'all' && backup.type !== selectedType) return false;
+    if (selectedStatus !== 'all' && backup.status !== selectedStatus) return false;
+    return true;
+  });
+
+  // Handle manual backup
+  const handleManualBackup = async () => {
+    try {
+      setBackupProgress(0);
+      
+      // Simulate progress (you can remove this if your API provides progress)
+      const progressInterval = setInterval(() => {
+        setBackupProgress(prev => Math.min(prev + 10, 90));
+      }, 500);
+
+      const response = await createBackup({
+        type: 'manual',
+        name: `Manual Backup ${new Date().toLocaleDateString()}`
+      }).unwrap();
+
+      console.log(response);
+
+      clearInterval(progressInterval);
+      setBackupProgress(100);
+      
+      setTimeout(() => {
+        setShowBackupModal(false);
+        setBackupProgress(0);
+        showToastMessage('Backup completed successfully!');
+        refetchBackups();
+        refetchStorage();
+      }, 1000);
+      
+    } catch (error) {
+      console.log(error);
+      showToastMessage(error?.data?.message || 'Backup failed', 'error');
+      setShowBackupModal(false);
+      setBackupProgress(0);
+    }
+  };
+
+  // Handle restore
+  const handleRestore = async () => {
+    try {
+      setRestoreProgress(0);
+      
+      const progressInterval = setInterval(() => {
+        setRestoreProgress(prev => Math.min(prev + 10, 90));
+      }, 500);
+
+      await restoreBackup(selectedBackup.id).unwrap();
+
+      clearInterval(progressInterval);
+      setRestoreProgress(100);
+      
+      setTimeout(() => {
+        setShowRestoreModal(false);
+        setRestoreProgress(0);
+        showToastMessage('System restored successfully!');
+      }, 1000);
+      
+    } catch (error) {
+      showToastMessage(error?.data?.message || 'Restore failed', 'error');
+      setShowRestoreModal(false);
+      setRestoreProgress(0);
+    }
+  };
+
+  // Handle delete backup
+  const handleDeleteBackup = async (backupId) => {
+    try {
+      await deleteBackup(backupId).unwrap();
+      setShowDeleteConfirm(false);
+      showToastMessage('Backup deleted successfully');
+      refetchBackups();
+      refetchStorage();
+    } catch (error) {
+      showToastMessage(error?.data?.message || 'Failed to delete backup', 'error');
+    }
+  };
+
+  // Handle create schedule
+  const handleCreateSchedule = async () => {
+    try {
+      await createSchedule(scheduleForm).unwrap();
+      setShowScheduleModal(false);
+      resetScheduleForm();
+      showToastMessage('Backup schedule created successfully');
+      refetchSchedules();
+    } catch (error) {
+      showToastMessage(error?.data?.message || 'Failed to create schedule', 'error');
+    }
+  };
+
+  // Handle update schedule
+  const handleUpdateSchedule = async () => {
+    try {
+      await updateSchedule({
+        id: selectedSchedule.id,
+        ...scheduleForm
+      }).unwrap();
+      setShowScheduleModal(false);
+      resetScheduleForm();
+      showToastMessage('Schedule updated successfully');
+      refetchSchedules();
+    } catch (error) {
+      showToastMessage(error?.data?.message || 'Failed to update schedule', 'error');
+    }
+  };
+
+  // Handle toggle schedule
+  const handleToggleSchedule = async (scheduleId, currentStatus) => {
+    try {
+      await toggleSchedule({
+        id: scheduleId,
+        status: currentStatus === 'active' ? 'inactive' : 'active'
+      }).unwrap();
+      showToastMessage('Schedule status updated');
+      refetchSchedules();
+    } catch (error) {
+      showToastMessage(error?.data?.message || 'Failed to update schedule', 'error');
+    }
+  };
+
+  // Handle delete schedule
+  const handleDeleteSchedule = async (scheduleId) => {
+    try {
+      await deleteSchedule(scheduleId).unwrap();
+      showToastMessage('Schedule deleted successfully');
+      refetchSchedules();
+    } catch (error) {
+      showToastMessage(error?.data?.message || 'Failed to delete schedule', 'error');
+    }
+  };
+
+  // Handle save settings
+  const handleSaveSettings = async () => {
+    try {
+      await updateSettings(settings).unwrap();
+      showToastMessage('Settings saved successfully');
+    } catch (error) {
+      showToastMessage(error?.data?.message || 'Failed to save settings', 'error');
+    }
+  };
+
+  // Show toast message
+  const showToastMessage = (message, type = 'success') => {
+    setSuccessMessage(message);
+    setShowSuccess(true);
+    setTimeout(() => setShowSuccess(false), 3000);
+  };
+
+  // Schedule form state
   const [scheduleForm, setScheduleForm] = useState({
     name: '',
     type: 'full',
@@ -270,142 +396,44 @@ const BackupRestorePage = () => {
     status: 'active'
   });
 
-  // Filter backups
-  const filteredBackups = backups.filter(backup => {
-    if (searchTerm) {
-      const searchLower = searchTerm.toLowerCase();
-      const matches = 
-        backup.name.toLowerCase().includes(searchLower) ||
-        backup.id.toLowerCase().includes(searchLower) ||
-        backup.createdBy?.toLowerCase().includes(searchLower);
-      if (!matches) return false;
-    }
-    if (selectedType !== 'all' && backup.type !== selectedType) return false;
-    if (selectedStatus !== 'all' && backup.status !== selectedStatus) return false;
-    return true;
-  });
-
-  // Format date
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-    
-    if (date.toDateString() === today.toDateString()) {
-      return `Today at ${date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`;
-    } else if (date.toDateString() === yesterday.toDateString()) {
-      return `Yesterday at ${date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`;
-    } else {
-      return date.toLocaleString('en-IN', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-    }
+  // Reset schedule form
+  const resetScheduleForm = () => {
+    setScheduleForm({
+      name: '',
+      type: 'full',
+      frequency: 'daily',
+      time: '02:00',
+      day: 'sunday',
+      databases: [],
+      retention: '30',
+      compression: true,
+      encryption: true,
+      notification: true,
+      status: 'active'
+    });
+    setSelectedSchedule(null);
   };
 
-  // Handle manual backup
-  const handleManualBackup = async () => {
-    setIsBackingUp(true);
-    setBackupProgress(0);
-
-    // Simulate backup progress
-    for (let i = 0; i <= 100; i += 10) {
-      await new Promise(resolve => setTimeout(resolve, 500));
-      setBackupProgress(i);
-    }
-
-    const newBackup = {
-      id: `BCK${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`,
-      name: 'Manual Backup',
-      type: 'manual',
-      status: 'success',
-      size: '2.4 GB',
-      duration: '45 seconds',
-      location: `/backups/manual/${new Date().toISOString().split('T')[0]}`,
-      files: 1245,
-      databases: ['users', 'applications', 'documents', 'offices'],
-      timestamp: new Date().toISOString(),
-      createdBy: 'admin@eseva.gov.in',
-      createdByName: 'System Admin',
-      checksum: `sha256:${Math.random().toString(36).substring(2, 34)}`,
-      compression: 'gzip',
-      encryption: 'AES-256',
-      retention: '30 days'
-    };
-
-    setBackups(prev => [newBackup, ...prev]);
-    setIsBackingUp(false);
-    setShowBackupModal(false);
-    setSuccessMessage('Backup completed successfully!');
-    setShowSuccess(true);
-    setTimeout(() => setShowSuccess(false), 3000);
+  // Open edit schedule modal
+  const openEditSchedule = (schedule) => {
+    setSelectedSchedule(schedule);
+    setScheduleForm({
+      name: schedule.name,
+      type: schedule.type,
+      frequency: schedule.frequency,
+      time: schedule.time,
+      day: schedule.day || 'sunday',
+      databases: schedule.databases,
+      retention: schedule.retention.replace(' days', ''),
+      compression: schedule.compression,
+      encryption: schedule.encryption,
+      notification: schedule.notification,
+      status: schedule.status
+    });
+    setShowScheduleModal(true);
   };
 
-  // Handle restore
-  const handleRestore = async () => {
-    setIsRestoring(true);
-    setRestoreProgress(0);
-
-    // Simulate restore progress
-    for (let i = 0; i <= 100; i += 10) {
-      await new Promise(resolve => setTimeout(resolve, 500));
-      setRestoreProgress(i);
-    }
-
-    setIsRestoring(false);
-    setShowRestoreModal(false);
-    setSuccessMessage('System restored successfully!');
-    setShowSuccess(true);
-    setTimeout(() => setShowSuccess(false), 3000);
-  };
-
-  // Handle delete backup
-  const handleDeleteBackup = (backupId) => {
-    setBackups(prev => prev.filter(b => b.id !== backupId));
-    setShowDeleteConfirm(false);
-    setSuccessMessage('Backup deleted successfully');
-    setShowSuccess(true);
-    setTimeout(() => setShowSuccess(false), 3000);
-  };
-
-  // Handle create schedule
-  const handleCreateSchedule = () => {
-    const newSchedule = {
-      id: `SCH${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`,
-      ...scheduleForm,
-      lastRun: null,
-      nextRun: new Date().toISOString()
-    };
-    setSchedules(prev => [...prev, newSchedule]);
-    setShowScheduleModal(false);
-    setSuccessMessage('Backup schedule created successfully');
-    setShowSuccess(true);
-    setTimeout(() => setShowSuccess(false), 3000);
-  };
-
-  // Handle toggle schedule
-  const handleToggleSchedule = (scheduleId) => {
-    setSchedules(prev => prev.map(s =>
-      s.id === scheduleId
-        ? { ...s, status: s.status === 'active' ? 'inactive' : 'active' }
-        : s
-    ));
-    setSuccessMessage('Schedule status updated');
-    setShowSuccess(true);
-    setTimeout(() => setShowSuccess(false), 3000);
-  };
-
-  // Handle delete schedule
-  const handleDeleteSchedule = (scheduleId) => {
-    setSchedules(prev => prev.filter(s => s.id !== scheduleId));
-    setSuccessMessage('Schedule deleted successfully');
-    setShowSuccess(true);
-    setTimeout(() => setShowSuccess(false), 3000);
-  };
+  const isLoading = isLoadingBackups || isLoadingSchedules || isLoadingStorage;
 
   return (
     <div className="space-y-6">
@@ -421,6 +449,16 @@ const BackupRestorePage = () => {
         </div>
       )}
 
+      {/* Loading Overlay */}
+      {isLoading && (
+        <div className="fixed inset-0 bg-black bg-opacity-20 flex items-center justify-center z-40">
+          <div className="bg-white rounded-lg p-4 shadow-xl flex items-center space-x-3">
+            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+            <span className="text-sm text-gray-700">Loading...</span>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
@@ -430,14 +468,17 @@ const BackupRestorePage = () => {
         <div className="flex space-x-3">
           <button
             onClick={() => setShowBackupModal(true)}
-            disabled={isBackingUp}
+            disabled={isCreatingBackup}
             className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
           >
             <Database className="w-4 h-4 mr-2" />
-            Backup Now
+            {isCreatingBackup ? 'Backing up...' : 'Backup Now'}
           </button>
           <button
-            onClick={() => setShowScheduleModal(true)}
+            onClick={() => {
+              resetScheduleForm();
+              setShowScheduleModal(true);
+            }}
             className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
           >
             <Clock className="w-4 h-4 mr-2" />
@@ -530,180 +571,218 @@ const BackupRestorePage = () => {
               >
                 <option value="all">All Status</option>
                 <option value="success">Success</option>
+                <option value="completed">Completed</option>
                 <option value="failed">Failed</option>
                 <option value="warning">Warning</option>
+                <option value="in_progress">In Progress</option>
               </select>
-              <button className="px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors flex items-center">
+              <button 
+                onClick={() => {
+                  setSearchTerm('');
+                  setSelectedType('all');
+                  setSelectedStatus('all');
+                }}
+                className="px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors flex items-center"
+              >
                 <Filter className="w-4 h-4 mr-2" />
-                More Filters
+                Clear Filters
               </button>
             </div>
           </div>
 
           {/* Backup List */}
           <div className="space-y-4">
-            {filteredBackups.map(backup => (
-              <div key={backup.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
-                {/* Header */}
-                <div
-                  className="p-4 cursor-pointer hover:bg-gray-50"
-                  onClick={() => setExpandedBackup(expandedBackup === backup.id ? null : backup.id)}
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-start space-x-4">
-                      <div className={`p-2 rounded-lg ${
-                        backup.status === 'success' ? 'bg-green-100' :
-                        backup.status === 'failed' ? 'bg-red-100' :
-                        'bg-yellow-100'
-                      }`}>
-                        <Database className={`w-5 h-5 ${
-                          backup.status === 'success' ? 'text-green-600' :
-                          backup.status === 'failed' ? 'text-red-600' :
-                          'text-yellow-600'
-                        }`} />
-                      </div>
-                      <div>
-                        <div className="flex items-center space-x-2">
-                          <h3 className="text-lg font-semibold text-gray-900">{backup.name}</h3>
-                          <span className={`text-xs px-2 py-1 rounded-full ${
-                            backup.type === 'auto' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'
-                          }`}>
-                            {backup.type === 'auto' ? 'Automatic' : 'Manual'}
-                          </span>
-                          <span className={`text-xs px-2 py-1 rounded-full ${
-                            backup.status === 'success' ? 'bg-green-100 text-green-800' :
-                            backup.status === 'failed' ? 'bg-red-100 text-red-800' :
-                            'bg-yellow-100 text-yellow-800'
-                          }`}>
-                            {backup.status}
-                          </span>
-                        </div>
-                        <p className="text-sm text-gray-600 mt-1">ID: {backup.id}</p>
-                        <div className="flex items-center space-x-4 mt-2">
-                          <span className="text-xs text-gray-500 flex items-center">
-                            <HardDrive className="w-3 h-3 mr-1" />
-                            {backup.size}
-                          </span>
-                          <span className="text-xs text-gray-500 flex items-center">
-                            <Clock className="w-3 h-3 mr-1" />
-                            {backup.duration}
-                          </span>
-                          <span className="text-xs text-gray-500 flex items-center">
-                            <Calendar className="w-3 h-3 mr-1" />
-                            {formatDate(backup.timestamp)}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    <button className="p-1 hover:bg-gray-200 rounded">
-                      {expandedBackup === backup.id ? (
-                        <ChevronDown className="w-5 h-5 text-gray-500" />
-                      ) : (
-                        <ChevronRight className="w-5 h-5 text-gray-500" />
-                      )}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Expanded Details */}
-                {expandedBackup === backup.id && (
-                  <div className="px-4 pb-4 border-t border-gray-200">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
-                      <div>
-                        <p className="text-xs text-gray-500">Location</p>
-                        <p className="text-sm font-medium text-gray-900">{backup.location || 'N/A'}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500">Files Backed Up</p>
-                        <p className="text-sm font-medium text-gray-900">{backup.files}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500">Compression</p>
-                        <p className="text-sm font-medium text-gray-900">{backup.compression}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500">Encryption</p>
-                        <p className="text-sm font-medium text-gray-900">{backup.encryption}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500">Retention</p>
-                        <p className="text-sm font-medium text-gray-900">{backup.retention}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500">Created By</p>
-                        <p className="text-sm font-medium text-gray-900">
-                          {backup.createdByName || backup.createdBy}
-                        </p>
-                      </div>
-                      {backup.reason && (
-                        <div className="col-span-2">
-                          <p className="text-xs text-gray-500">Reason</p>
-                          <p className="text-sm text-gray-700">{backup.reason}</p>
-                        </div>
-                      )}
-                      {backup.warning && (
-                        <div className="col-span-2">
-                          <p className="text-xs text-gray-500">Warning</p>
-                          <p className="text-sm text-yellow-600">{backup.warning}</p>
-                        </div>
-                      )}
-                      {backup.error && (
-                        <div className="col-span-2">
-                          <p className="text-xs text-gray-500">Error</p>
-                          <p className="text-sm text-red-600">{backup.error}</p>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Databases */}
-                    <div className="mt-4">
-                      <p className="text-xs text-gray-500 mb-2">Databases Included</p>
-                      <div className="flex flex-wrap gap-2">
-                        {backup.databases.map(db => (
-                          <span key={db} className="text-xs px-2 py-1 bg-blue-50 text-blue-700 rounded">
-                            {db}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Checksum */}
-                    <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-                      <p className="text-xs text-gray-500 mb-1">Checksum (SHA-256)</p>
-                      <p className="text-xs font-mono text-gray-700 break-all">{backup.checksum}</p>
-                    </div>
-
-                    {/* Actions */}
-                    <div className="mt-4 flex justify-end space-x-2">
-                      <button
-                        onClick={() => {
-                          setSelectedBackup(backup);
-                          setShowRestoreModal(true);
-                        }}
-                        className="px-3 py-1.5 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700"
-                      >
-                        <RefreshCw className="w-4 h-4 inline mr-1" />
-                        Restore
-                      </button>
-                      <button className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">
-                        <Download className="w-4 h-4 inline mr-1" />
-                        Download
-                      </button>
-                      <button
-                        onClick={() => {
-                          setSelectedBackup(backup);
-                          setShowDeleteConfirm(true);
-                        }}
-                        className="px-3 py-1.5 text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100"
-                      >
-                        <Trash2 className="w-4 h-4 inline mr-1" />
-                        Delete
-                      </button>
-                    </div>
-                  </div>
-                )}
+            {isLoadingBackups ? (
+              <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+                <p className="text-gray-500 mt-4">Loading backups...</p>
               </div>
-            ))}
+            ) : filteredBackups.length === 0 ? (
+              <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
+                <Archive className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No backups found</h3>
+                <p className="text-gray-500 mb-6">Try adjusting your filters or create a new backup</p>
+                <button
+                  onClick={() => setShowBackupModal(true)}
+                  className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                  <Database className="w-4 h-4 mr-2" />
+                  Create Backup
+                </button>
+              </div>
+            ) : (
+              filteredBackups.map(backup => (
+                <div key={backup.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
+                  {/* Header */}
+                  <div
+                    className="p-4 cursor-pointer hover:bg-gray-50"
+                    onClick={() => setExpandedBackup(expandedBackup === backup.id ? null : backup.id)}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-start space-x-4">
+                        <div className={`p-2 rounded-lg ${
+                          backup.status === 'success' || backup.status === 'completed' ? 'bg-green-100' :
+                          backup.status === 'failed' ? 'bg-red-100' :
+                          backup.status === 'in_progress' ? 'bg-blue-100' :
+                          'bg-yellow-100'
+                        }`}>
+                          <Database className={`w-5 h-5 ${
+                            backup.status === 'success' || backup.status === 'completed' ? 'text-green-600' :
+                            backup.status === 'failed' ? 'text-red-600' :
+                            backup.status === 'in_progress' ? 'text-blue-600' :
+                            'text-yellow-600'
+                          }`} />
+                        </div>
+                        <div>
+                          <div className="flex items-center space-x-2">
+                            <h3 className="text-lg font-semibold text-gray-900">{backup.name}</h3>
+                            <span className={`text-xs px-2 py-1 rounded-full ${
+                              backup.type === 'auto' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'
+                            }`}>
+                              {backup.type === 'auto' ? 'Automatic' : 'Manual'}
+                            </span>
+                            <span className={`text-xs px-2 py-1 rounded-full ${getStatusColor(backup.status)}`}>
+                              {backup.status}
+                            </span>
+                          </div>
+                          <p className="text-sm text-gray-600 mt-1">ID: {backup.id}</p>
+                          <div className="flex items-center space-x-4 mt-2">
+                            <span className="text-xs text-gray-500 flex items-center">
+                              <HardDrive className="w-3 h-3 mr-1" />
+                              {formatBytes(backup.size)}
+                            </span>
+                            <span className="text-xs text-gray-500 flex items-center">
+                              <Clock className="w-3 h-3 mr-1" />
+                              {backup.duration}
+                            </span>
+                            <span className="text-xs text-gray-500 flex items-center">
+                              <Calendar className="w-3 h-3 mr-1" />
+                              {formatDate(backup.timestamp)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <button className="p-1 hover:bg-gray-200 rounded">
+                        {expandedBackup === backup.id ? (
+                          <ChevronDown className="w-5 h-5 text-gray-500" />
+                        ) : (
+                          <ChevronRight className="w-5 h-5 text-gray-500" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Expanded Details */}
+                  {expandedBackup === backup.id && (
+                    <div className="px-4 pb-4 border-t border-gray-200">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+                        <div>
+                          <p className="text-xs text-gray-500">Location</p>
+                          <p className="text-sm font-medium text-gray-900">{backup.location || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500">Files Backed Up</p>
+                          <p className="text-sm font-medium text-gray-900">{backup.files?.toLocaleString() || 0}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500">Compression</p>
+                          <p className="text-sm font-medium text-gray-900">{backup.compression || 'gzip'}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500">Encryption</p>
+                          <p className="text-sm font-medium text-gray-900">{backup.encryption || 'AES-256'}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500">Retention</p>
+                          <p className="text-sm font-medium text-gray-900">{backup.retention || '30 days'}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500">Created By</p>
+                          <p className="text-sm font-medium text-gray-900">
+                            {backup.createdByName || backup.createdBy}
+                          </p>
+                        </div>
+                        {backup.reason && (
+                          <div className="col-span-2">
+                            <p className="text-xs text-gray-500">Reason</p>
+                            <p className="text-sm text-gray-700">{backup.reason}</p>
+                          </div>
+                        )}
+                        {backup.warning && (
+                          <div className="col-span-2">
+                            <p className="text-xs text-gray-500">Warning</p>
+                            <p className="text-sm text-yellow-600">{backup.warning}</p>
+                          </div>
+                        )}
+                        {backup.error && (
+                          <div className="col-span-2">
+                            <p className="text-xs text-gray-500">Error</p>
+                            <p className="text-sm text-red-600">{backup.error}</p>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Databases */}
+                      {backup.databases && backup.databases.length > 0 && (
+                        <div className="mt-4">
+                          <p className="text-xs text-gray-500 mb-2">Databases Included</p>
+                          <div className="flex flex-wrap gap-2">
+                            {backup.databases.map(db => (
+                              <span key={db} className="text-xs px-2 py-1 bg-blue-50 text-blue-700 rounded">
+                                {db}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Checksum */}
+                      {backup.checksum && (
+                        <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                          <p className="text-xs text-gray-500 mb-1">Checksum (SHA-256)</p>
+                          <p className="text-xs font-mono text-gray-700 break-all">{backup.checksum}</p>
+                        </div>
+                      )}
+
+                      {/* Actions */}
+                      <div className="mt-4 flex justify-end space-x-2">
+                        <button
+                          onClick={() => {
+                            setSelectedBackup(backup);
+                            setShowRestoreModal(true);
+                          }}
+                          disabled={isRestoringBackup}
+                          className="px-3 py-1.5 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:opacity-50"
+                        >
+                          <RefreshCw className="w-4 h-4 inline mr-1" />
+                          Restore
+                        </button>
+                        <button 
+                          className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+                          onClick={() => {
+                            // Handle download
+                          }}
+                        >
+                          <Download className="w-4 h-4 inline mr-1" />
+                          Download
+                        </button>
+                        <button
+                          onClick={() => {
+                            setSelectedBackup(backup);
+                            setShowDeleteConfirm(true);
+                          }}
+                          disabled={isDeletingBackup}
+                          className="px-3 py-1.5 text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 disabled:opacity-50"
+                        >
+                          <Trash2 className="w-4 h-4 inline mr-1" />
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
           </div>
         </>
       )}
@@ -711,201 +790,243 @@ const BackupRestorePage = () => {
       {/* Schedules Tab */}
       {activeTab === 'schedules' && (
         <div className="space-y-4">
-          {schedules.map(schedule => (
-            <div key={schedule.id} className="bg-white rounded-xl border border-gray-200 p-6">
-              <div className="flex items-start justify-between">
-                <div className="flex items-start space-x-4">
-                  <div className={`p-2 rounded-lg ${schedule.status === 'active' ? 'bg-green-100' : 'bg-gray-100'}`}>
-                    <Clock className={`w-5 h-5 ${schedule.status === 'active' ? 'text-green-600' : 'text-gray-500'}`} />
+          {isLoadingSchedules ? (
+            <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+              <p className="text-gray-500 mt-4">Loading schedules...</p>
+            </div>
+          ) : schedules.length === 0 ? (
+            <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
+              <Clock className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No schedules found</h3>
+              <p className="text-gray-500 mb-6">Create a backup schedule to automate backups</p>
+              <button
+                onClick={() => {
+                  resetScheduleForm();
+                  setShowScheduleModal(true);
+                }}
+                className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+              >
+                <PlusCircle className="w-4 h-4 mr-2" />
+                Create Schedule
+              </button>
+            </div>
+          ) : (
+            schedules.map(schedule => (
+              <div key={schedule.id} className="bg-white rounded-xl border border-gray-200 p-6">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-start space-x-4">
+                    <div className={`p-2 rounded-lg ${schedule.status === 'active' ? 'bg-green-100' : 'bg-gray-100'}`}>
+                      <Clock className={`w-5 h-5 ${schedule.status === 'active' ? 'text-green-600' : 'text-gray-500'}`} />
+                    </div>
+                    <div>
+                      <div className="flex items-center space-x-2">
+                        <h3 className="text-lg font-semibold text-gray-900">{schedule.name}</h3>
+                        <span className={`text-xs px-2 py-1 rounded-full ${
+                          schedule.type === 'full' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'
+                        }`}>
+                          {schedule.type}
+                        </span>
+                        <span className={`text-xs px-2 py-1 rounded-full ${getStatusColor(schedule.status)}`}>
+                          {schedule.status}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-3 gap-4 mt-3">
+                        <div>
+                          <p className="text-xs text-gray-500">Frequency</p>
+                          <p className="text-sm font-medium text-gray-900">
+                            {schedule.frequency === 'daily' ? 'Daily' : 
+                             schedule.frequency === 'weekly' ? `Weekly on ${schedule.day}` :
+                             `Monthly on day ${schedule.day}`}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500">Time</p>
+                          <p className="text-sm font-medium text-gray-900">{schedule.time}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500">Retention</p>
+                          <p className="text-sm font-medium text-gray-900">{schedule.retention}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500">Last Run</p>
+                          <p className="text-sm text-gray-900">{formatDate(schedule.lastRun)}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500">Next Run</p>
+                          <p className="text-sm text-gray-900">{formatDate(schedule.nextRun)}</p>
+                        </div>
+                      </div>
+                      <div className="mt-3">
+                        <p className="text-xs text-gray-500 mb-1">Databases</p>
+                        <div className="flex flex-wrap gap-2">
+                          {schedule.databases.map(db => (
+                            <span key={db} className="text-xs px-2 py-1 bg-blue-50 text-blue-700 rounded">
+                              {db}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <div className="flex items-center space-x-2">
-                      <h3 className="text-lg font-semibold text-gray-900">{schedule.name}</h3>
-                      <span className={`text-xs px-2 py-1 rounded-full ${
-                        schedule.type === 'full' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'
-                      }`}>
-                        {schedule.type}
-                      </span>
-                      <span className={`text-xs px-2 py-1 rounded-full ${
-                        schedule.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                      }`}>
-                        {schedule.status}
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-3 gap-4 mt-3">
-                      <div>
-                        <p className="text-xs text-gray-500">Frequency</p>
-                        <p className="text-sm font-medium text-gray-900">
-                          {schedule.frequency === 'daily' ? 'Daily' : 
-                           schedule.frequency === 'weekly' ? `Weekly on ${schedule.day}` :
-                           `Monthly on day ${schedule.day}`}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500">Time</p>
-                        <p className="text-sm font-medium text-gray-900">{schedule.time}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500">Retention</p>
-                        <p className="text-sm font-medium text-gray-900">{schedule.retention}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500">Last Run</p>
-                        <p className="text-sm text-gray-900">{formatDate(schedule.lastRun)}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500">Next Run</p>
-                        <p className="text-sm text-gray-900">{formatDate(schedule.nextRun)}</p>
-                      </div>
-                    </div>
-                    <div className="mt-3">
-                      <p className="text-xs text-gray-500 mb-1">Databases</p>
-                      <div className="flex flex-wrap gap-2">
-                        {schedule.databases.map(db => (
-                          <span key={db} className="text-xs px-2 py-1 bg-blue-50 text-blue-700 rounded">
-                            {db}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={() => handleToggleSchedule(schedule.id, schedule.status)}
+                      disabled={isTogglingSchedule}
+                      className={`p-2 rounded-lg transition-colors ${
+                        schedule.status === 'active' 
+                          ? 'bg-yellow-100 hover:bg-yellow-200' 
+                          : 'bg-green-100 hover:bg-green-200'
+                      } disabled:opacity-50`}
+                    >
+                      {schedule.status === 'active' ? (
+                        <Pause className="w-4 h-4 text-yellow-600" />
+                      ) : (
+                        <Play className="w-4 h-4 text-green-600" />
+                      )}
+                    </button>
+                    <button 
+                      onClick={() => openEditSchedule(schedule)}
+                      className="p-2 hover:bg-gray-100 rounded-lg"
+                    >
+                      <Edit3 className="w-4 h-4 text-gray-500" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteSchedule(schedule.id)}
+                      disabled={isDeletingSchedule}
+                      className="p-2 hover:bg-red-100 rounded-lg disabled:opacity-50"
+                    >
+                      <Trash2 className="w-4 h-4 text-red-500" />
+                    </button>
                   </div>
-                </div>
-                <div className="flex space-x-2">
-                  <button
-                    onClick={() => handleToggleSchedule(schedule.id)}
-                    className={`p-2 rounded-lg transition-colors ${
-                      schedule.status === 'active' 
-                        ? 'bg-yellow-100 hover:bg-yellow-200' 
-                        : 'bg-green-100 hover:bg-green-200'
-                    }`}
-                  >
-                    {schedule.status === 'active' ? (
-                      <Pause className="w-4 h-4 text-yellow-600" />
-                    ) : (
-                      <Play className="w-4 h-4 text-green-600" />
-                    )}
-                  </button>
-                  <button className="p-2 hover:bg-gray-100 rounded-lg">
-                    <Edit3 className="w-4 h-4 text-gray-500" />
-                  </button>
-                  <button
-                    onClick={() => handleDeleteSchedule(schedule.id)}
-                    className="p-2 hover:bg-red-100 rounded-lg"
-                  >
-                    <Trash2 className="w-4 h-4 text-red-500" />
-                  </button>
                 </div>
               </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       )}
 
       {/* Storage Tab */}
       {activeTab === 'storage' && (
         <div className="space-y-6">
-          {/* Storage Overview */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Storage Overview</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div>
-                <p className="text-sm text-gray-500">Total Storage</p>
-                <p className="text-2xl font-bold text-gray-900">{storage.total}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Used</p>
-                <p className="text-2xl font-bold text-blue-600">{storage.used}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Free</p>
-                <p className="text-2xl font-bold text-green-600">{storage.free}</p>
-              </div>
+          {isLoadingStorage ? (
+            <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+              <p className="text-gray-500 mt-4">Loading storage data...</p>
             </div>
-            
-            {/* Progress Bar */}
-            <div className="mt-4">
-              <div className="flex justify-between text-sm mb-1">
-                <span className="text-gray-600">Usage</span>
-                <span className="font-medium">{storage.usagePercentage}%</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div
-                  className={`h-2 rounded-full ${
-                    storage.usagePercentage > 90 ? 'bg-red-600' :
-                    storage.usagePercentage > 70 ? 'bg-yellow-600' :
-                    'bg-green-600'
-                  }`}
-                  style={{ width: `${storage.usagePercentage}%` }}
-                ></div>
-              </div>
-            </div>
-          </div>
-
-          {/* Storage Breakdown */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Storage Breakdown</h2>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Backups</span>
-                  <span className="text-sm font-medium text-gray-900">{storage.backups}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Databases</span>
-                  <span className="text-sm font-medium text-gray-900">{storage.databases}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Uploaded Files</span>
-                  <span className="text-sm font-medium text-gray-900">{storage.files}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">System Logs</span>
-                  <span className="text-sm font-medium text-gray-900">{storage.logs}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Database Sizes */}
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Database Sizes</h2>
-              <div className="space-y-3">
-                {databaseSizes.map(db => (
-                  <div key={db.name} className="flex justify-between items-center">
-                    <div>
-                      <span className="text-sm font-medium text-gray-900">{db.name}</span>
-                      <span className="text-xs text-gray-500 ml-2">({db.count.toLocaleString()} records)</span>
-                    </div>
-                    <span className="text-sm text-gray-600">{db.size}</span>
+          ) : storage ? (
+            <>
+              {/* Storage Overview */}
+              <div className="bg-white rounded-xl border border-gray-200 p-6">
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">Storage Overview</h2>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div>
+                    <p className="text-sm text-gray-500">Total Storage</p>
+                    <p className="text-2xl font-bold text-gray-900">{formatBytes(storage.total)}</p>
                   </div>
-                ))}
+                  <div>
+                    <p className="text-sm text-gray-500">Used</p>
+                    <p className="text-2xl font-bold text-blue-600">{formatBytes(storage.used)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Free</p>
+                    <p className="text-2xl font-bold text-green-600">{formatBytes(storage.free)}</p>
+                  </div>
+                </div>
+                
+                {/* Progress Bar */}
+                <div className="mt-4">
+                  <div className="flex justify-between text-sm mb-1">
+                    <span className="text-gray-600">Usage</span>
+                    <span className="font-medium">{storage.usagePercentage}%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className={`h-2 rounded-full ${
+                        storage.usagePercentage > 90 ? 'bg-red-600' :
+                        storage.usagePercentage > 70 ? 'bg-yellow-600' :
+                        'bg-green-600'
+                      }`}
+                      style={{ width: `${storage.usagePercentage}%` }}
+                    ></div>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
 
-          {/* Cleanup Actions */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Storage Cleanup</h2>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div>
-                  <p className="text-sm font-medium text-gray-900">Old Backups</p>
-                  <p className="text-xs text-gray-500">Backups older than 90 days</p>
+              {/* Storage Breakdown */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-white rounded-xl border border-gray-200 p-6">
+                  <h2 className="text-lg font-semibold text-gray-900 mb-4">Storage Breakdown</h2>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Backups</span>
+                      <span className="text-sm font-medium text-gray-900">{formatBytes(storage.backups)}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Databases</span>
+                      <span className="text-sm font-medium text-gray-900">{formatBytes(storage.databases)}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Uploaded Files</span>
+                      <span className="text-sm font-medium text-gray-900">{formatBytes(storage.files)}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">System Logs</span>
+                      <span className="text-sm font-medium text-gray-900">{formatBytes(storage.logs)}</span>
+                    </div>
+                  </div>
                 </div>
-                <button className="px-3 py-1.5 text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100">
-                  Clean Up
-                </button>
+
+                {/* Database Sizes */}
+                {databaseSizes.length > 0 && (
+                  <div className="bg-white rounded-xl border border-gray-200 p-6">
+                    <h2 className="text-lg font-semibold text-gray-900 mb-4">Database Sizes</h2>
+                    <div className="space-y-3">
+                      {databaseSizes.map(db => (
+                        <div key={db.name} className="flex justify-between items-center">
+                          <div>
+                            <span className="text-sm font-medium text-gray-900 capitalize">{db.name}</span>
+                            <span className="text-xs text-gray-500 ml-2">({db.count?.toLocaleString() || 0} records)</span>
+                          </div>
+                          <span className="text-sm text-gray-600">{formatBytes(db.size)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div>
-                  <p className="text-sm font-medium text-gray-900">System Logs</p>
-                  <p className="text-xs text-gray-500">Logs older than 30 days</p>
+
+              {/* Cleanup Actions */}
+              <div className="bg-white rounded-xl border border-gray-200 p-6">
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">Storage Cleanup</h2>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">Old Backups</p>
+                      <p className="text-xs text-gray-500">Backups older than 90 days</p>
+                    </div>
+                    <button className="px-3 py-1.5 text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100">
+                      Clean Up
+                    </button>
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">System Logs</p>
+                      <p className="text-xs text-gray-500">Logs older than 30 days</p>
+                    </div>
+                    <button className="px-3 py-1.5 text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100">
+                      Clean Up
+                    </button>
+                  </div>
                 </div>
-                <button className="px-3 py-1.5 text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100">
-                  Clean Up
-                </button>
               </div>
+            </>
+          ) : (
+            <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
+              <HardDrive className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No storage data available</h3>
             </div>
-          </div>
+          )}
         </div>
       )}
 
@@ -923,7 +1044,8 @@ const BackupRestorePage = () => {
                   </label>
                   <input
                     type="text"
-                    defaultValue="/backups"
+                    value={settings.defaultLocation}
+                    onChange={(e) => setSettings({...settings, defaultLocation: e.target.value})}
                     className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
@@ -933,7 +1055,8 @@ const BackupRestorePage = () => {
                   </label>
                   <input
                     type="number"
-                    defaultValue="30"
+                    value={settings.backupRetention}
+                    onChange={(e) => setSettings({...settings, backupRetention: parseInt(e.target.value)})}
                     className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
@@ -943,7 +1066,8 @@ const BackupRestorePage = () => {
                   </label>
                   <input
                     type="number"
-                    defaultValue="100"
+                    value={settings.maxBackupSize}
+                    onChange={(e) => setSettings({...settings, maxBackupSize: parseInt(e.target.value)})}
                     className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
@@ -951,32 +1075,47 @@ const BackupRestorePage = () => {
                   <label className="block text-xs font-medium text-gray-700 mb-1">
                     Compression Level
                   </label>
-                  <select className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                    <option>Fast (gzip level 1)</option>
-                    <option>Balanced (gzip level 6)</option>
-                    <option>Maximum (gzip level 9)</option>
+                  <select 
+                    value={settings.compressionLevel}
+                    onChange={(e) => setSettings({...settings, compressionLevel: e.target.value})}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="fast">Fast (gzip level 1)</option>
+                    <option value="balanced">Balanced (gzip level 6)</option>
+                    <option value="maximum">Maximum (gzip level 9)</option>
                   </select>
                 </div>
               </div>
 
               <div className="space-y-2">
                 <label className="flex items-center space-x-2">
-                  <input type="checkbox" defaultChecked className="rounded text-blue-600" />
+                  <input 
+                    type="checkbox" 
+                    checked={settings.encryption}
+                    onChange={(e) => setSettings({...settings, encryption: e.target.checked})}
+                    className="rounded text-blue-600" 
+                  />
                   <span className="text-sm text-gray-700">Enable encryption (AES-256)</span>
                 </label>
                 <label className="flex items-center space-x-2">
-                  <input type="checkbox" defaultChecked className="rounded text-blue-600" />
+                  <input 
+                    type="checkbox" 
+                    checked={settings.verifyIntegrity}
+                    onChange={(e) => setSettings({...settings, verifyIntegrity: e.target.checked})}
+                    className="rounded text-blue-600" 
+                  />
                   <span className="text-sm text-gray-700">Verify backup integrity after creation</span>
                 </label>
                 <label className="flex items-center space-x-2">
-                  <input type="checkbox" defaultChecked className="rounded text-blue-600" />
+                  <input 
+                    type="checkbox" 
+                    checked={settings.emailNotification}
+                    onChange={(e) => setSettings({...settings, emailNotification: e.target.checked})}
+                    className="rounded text-blue-600" 
+                  />
                   <span className="text-sm text-gray-700">Send email notification on backup completion</span>
                 </label>
               </div>
-
-              <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-                Save Settings
-              </button>
             </div>
           </div>
 
@@ -986,15 +1125,30 @@ const BackupRestorePage = () => {
             <div className="space-y-4">
               <div className="space-y-2">
                 <label className="flex items-center space-x-2">
-                  <input type="checkbox" defaultChecked className="rounded text-blue-600" />
+                  <input 
+                    type="checkbox" 
+                    checked={settings.createRestorePoint}
+                    onChange={(e) => setSettings({...settings, createRestorePoint: e.target.checked})}
+                    className="rounded text-blue-600" 
+                  />
                   <span className="text-sm text-gray-700">Create restore point before restore</span>
                 </label>
                 <label className="flex items-center space-x-2">
-                  <input type="checkbox" defaultChecked className="rounded text-blue-600" />
+                  <input 
+                    type="checkbox" 
+                    checked={settings.verifyAfterRestore}
+                    onChange={(e) => setSettings({...settings, verifyAfterRestore: e.target.checked})}
+                    className="rounded text-blue-600" 
+                  />
                   <span className="text-sm text-gray-700">Verify database consistency after restore</span>
                 </label>
                 <label className="flex items-center space-x-2">
-                  <input type="checkbox" defaultChecked className="rounded text-blue-600" />
+                  <input 
+                    type="checkbox" 
+                    checked={settings.maintainDuringRestore}
+                    onChange={(e) => setSettings({...settings, maintainDuringRestore: e.target.checked})}
+                    className="rounded text-blue-600" 
+                  />
                   <span className="text-sm text-gray-700">Maintain application during restore</span>
                 </label>
               </div>
@@ -1012,25 +1166,54 @@ const BackupRestorePage = () => {
                 <label className="block text-xs font-medium text-gray-700 mb-1">
                   Recovery Time Objective (RTO)
                 </label>
-                <select className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                  <option>1 hour</option>
-                  <option>4 hours</option>
-                  <option>8 hours</option>
-                  <option>24 hours</option>
+                <select 
+                  value={settings.rto}
+                  onChange={(e) => setSettings({...settings, rto: e.target.value})}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="1">1 hour</option>
+                  <option value="4">4 hours</option>
+                  <option value="8">8 hours</option>
+                  <option value="24">24 hours</option>
                 </select>
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">
                   Recovery Point Objective (RPO)
                 </label>
-                <select className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                  <option>1 hour</option>
-                  <option>4 hours</option>
-                  <option>12 hours</option>
-                  <option>24 hours</option>
+                <select 
+                  value={settings.rpo}
+                  onChange={(e) => setSettings({...settings, rpo: e.target.value})}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="1">1 hour</option>
+                  <option value="4">4 hours</option>
+                  <option value="12">12 hours</option>
+                  <option value="24">24 hours</option>
                 </select>
               </div>
             </div>
+          </div>
+
+          {/* Save Button */}
+          <div className="flex justify-end">
+            <button
+              onClick={handleSaveSettings}
+              disabled={isUpdatingSettings}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center"
+            >
+              {isUpdatingSettings ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4 mr-2" />
+                  Save Settings
+                </>
+              )}
+            </button>
           </div>
         </div>
       )}
@@ -1044,7 +1227,7 @@ const BackupRestorePage = () => {
             </div>
 
             <div className="p-6 space-y-4">
-              {isBackingUp ? (
+              {isCreatingBackup || backupProgress > 0 ? (
                 <div className="text-center">
                   <div className="mb-4">
                     <div className="w-20 h-20 mx-auto relative">
@@ -1100,7 +1283,8 @@ const BackupRestorePage = () => {
                     </button>
                     <button
                       onClick={handleManualBackup}
-                      className="flex-1 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+                      disabled={isCreatingBackup}
+                      className="flex-1 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50"
                     >
                       Start Backup
                     </button>
@@ -1121,7 +1305,7 @@ const BackupRestorePage = () => {
             </div>
 
             <div className="p-6 space-y-4">
-              {isRestoring ? (
+              {isRestoringBackup || restoreProgress > 0 ? (
                 <div className="text-center">
                   <div className="mb-4">
                     <div className="w-20 h-20 mx-auto relative">
@@ -1164,8 +1348,10 @@ const BackupRestorePage = () => {
                     <div className="space-y-1">
                       <p className="text-xs text-gray-600">ID: {selectedBackup.id}</p>
                       <p className="text-xs text-gray-600">Date: {formatDate(selectedBackup.timestamp)}</p>
-                      <p className="text-xs text-gray-600">Size: {selectedBackup.size}</p>
-                      <p className="text-xs text-gray-600">Databases: {selectedBackup.databases.join(', ')}</p>
+                      <p className="text-xs text-gray-600">Size: {formatBytes(selectedBackup.size)}</p>
+                      {selectedBackup.databases && (
+                        <p className="text-xs text-gray-600">Databases: {selectedBackup.databases.join(', ')}</p>
+                      )}
                     </div>
                   </div>
 
@@ -1178,7 +1364,8 @@ const BackupRestorePage = () => {
                     </button>
                     <button
                       onClick={handleRestore}
-                      className="flex-1 px-4 py-2 text-sm font-medium text-white bg-yellow-600 rounded-lg hover:bg-yellow-700"
+                      disabled={isRestoringBackup}
+                      className="flex-1 px-4 py-2 text-sm font-medium text-white bg-yellow-600 rounded-lg hover:bg-yellow-700 disabled:opacity-50"
                     >
                       Confirm Restore
                     </button>
@@ -1190,20 +1377,25 @@ const BackupRestorePage = () => {
         </div>
       )}
 
-      {/* Create Schedule Modal */}
+      {/* Create/Edit Schedule Modal */}
       {showScheduleModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-gray-200 flex justify-between items-start">
               <div>
-                <h2 className="text-xl font-bold text-gray-900">Create Backup Schedule</h2>
+                <h2 className="text-xl font-bold text-gray-900">
+                  {selectedSchedule ? 'Edit Backup Schedule' : 'Create Backup Schedule'}
+                </h2>
                 <p className="text-sm text-gray-500 mt-1">Configure automated backups</p>
               </div>
               <button
-                onClick={() => setShowScheduleModal(false)}
+                onClick={() => {
+                  setShowScheduleModal(false);
+                  resetScheduleForm();
+                }}
                 className="p-2 hover:bg-gray-100 rounded-lg"
               >
-                <XCircle className="w-5 h-5 text-gray-500" />
+                <XCircleIcon className="w-5 h-5 text-gray-500" />
               </button>
             </div>
 
@@ -1370,16 +1562,27 @@ const BackupRestorePage = () => {
 
               <div className="flex justify-end space-x-3 pt-4 border-t">
                 <button
-                  onClick={() => setShowScheduleModal(false)}
+                  onClick={() => {
+                    setShowScheduleModal(false);
+                    resetScheduleForm();
+                  }}
                   className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
                 >
                   Cancel
                 </button>
                 <button
-                  onClick={handleCreateSchedule}
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+                  onClick={selectedSchedule ? handleUpdateSchedule : handleCreateSchedule}
+                  disabled={isCreatingSchedule || isUpdatingSchedule}
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50"
                 >
-                  Create Schedule
+                  {isCreatingSchedule || isUpdatingSchedule ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2 inline"></div>
+                      {selectedSchedule ? 'Updating...' : 'Creating...'}
+                    </>
+                  ) : (
+                    selectedSchedule ? 'Update Schedule' : 'Create Schedule'
+                  )}
                 </button>
               </div>
             </div>
@@ -1410,9 +1613,10 @@ const BackupRestorePage = () => {
                 </button>
                 <button
                   onClick={() => handleDeleteBackup(selectedBackup.id)}
-                  className="flex-1 px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700"
+                  disabled={isDeletingBackup}
+                  className="flex-1 px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50"
                 >
-                  Delete
+                  {isDeletingBackup ? 'Deleting...' : 'Delete'}
                 </button>
               </div>
             </div>

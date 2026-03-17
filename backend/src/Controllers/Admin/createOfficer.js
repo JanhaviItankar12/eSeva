@@ -73,6 +73,29 @@ export const createOfficer = async (req, res) => {
       }
     }
 
+    // Roles that must be unique per office
+  const singleRolePerOffice = [
+  "COLLECTOR",
+  "TEHSILDAR",
+  "SARPANCH",
+  "GRAM_SEVAK"
+   ];
+
+   if (singleRolePerOffice.includes(role)) {
+
+  const existingOfficer = await User.findOne({
+    role,
+    office: selectedOffice._id,
+    isActive: true
+  });
+
+  if (existingOfficer) {
+    return res.status(400).json({
+      message: `${role.replace("_", " ")} already assigned to this office`
+    });
+  }
+}
+
     //  Generate temporary password (8-10 chars readable)
     const tempPassword = crypto.randomBytes(6).toString("base64").slice(0, 10);
 

@@ -854,6 +854,35 @@ export const getActiveGramPanchayatsByTehsil = async (req, res) => {
   }
 };
 
+export const getOfficerRoles=async(req,res)=>{
+  try {
+    const roles={
+      GRAM:[
+        {label:"Gram Sevak",value:"GRAM_SEVAK"},
+        {label:"Sarpanch",value:"SARPANCH"}
+      ],
+      TEHSIL:[
+        {label:"Tehsil Clerk",value:"TEHSIL_CLERK"},
+        {label:"Tehsildar",value:"TEHSILDAR"}
+      ],
+      DISTRICT:[
+        { label: "District Clerk", value: "DISTRICT_CLERK" },
+        { label: "Collector", value: "COLLECTOR" }
+      ]
+    };
+
+     return res.status(200).json({
+      success: true,
+      data: roles
+    });
+  } catch (error) {
+     res.status(500).json({
+      success: false,
+      message: "Failed to fetch officer roles"
+    });
+  }
+}
+
 
 
 

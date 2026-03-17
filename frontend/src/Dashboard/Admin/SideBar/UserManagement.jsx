@@ -96,6 +96,18 @@ const UserManagement = () => {
   const officers = officersData?.data || [];
   const expiredOfficers = expiredOfficersData?.data || [];
 
+  // Get unique roles from officers data for filter dropdown
+  const uniqueRoles = ['all', ...new Set(officers.map(officer => officer.role).filter(Boolean))];
+  
+  // Get unique statuses from officers data for filter dropdown
+  const getStatusFromUser = (user) => {
+    if (!user.isActive) return 'inactive';
+    if (user.locked) return 'locked';
+    return 'active';
+  };
+  
+  const uniqueStatuses = ['all', ...new Set(officers.map(user => getStatusFromUser(user)))];
+
   // Update expired user IDs when expired officers data changes
   useEffect(() => {
     if (expiredOfficers.length > 0) {
@@ -189,6 +201,12 @@ const UserManagement = () => {
       'CITIZEN': 'bg-gray-100 text-gray-800'
     };
     return colors[role] || 'bg-gray-100 text-gray-800';
+  };
+
+  // Format role for display
+  const formatRole = (role) => {
+    if (!role) return '';
+    return role.replace('_', ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
   };
 
   // Validate form
@@ -288,8 +306,8 @@ const UserManagement = () => {
 
       setShowCreateModal(false);
       resetForm();
-      refetchOfficers();
-      refetchExpiredOfficers();
+      await refetchOfficers();
+      await refetchExpiredOfficers();
 
     } catch (error) {
       if (error.data?.field) {
@@ -321,8 +339,8 @@ const UserManagement = () => {
       setShowEditModal(false);
       resetForm();
       setSelectedUser(null);
-      refetchOfficers();
-      refetchExpiredOfficers();
+      await refetchOfficers();
+      await refetchExpiredOfficers();
 
     } catch (error) {
       setErrors({ submit: error?.data?.message || 'Failed to update user. Please try again.' });
@@ -347,8 +365,10 @@ const UserManagement = () => {
       setShowLockModal(false);
       setLockReason('');
       setSelectedUser(null);
-      refetchOfficers();
-      refetchExpiredOfficers();
+      
+      // Force refetch to update the UI
+      await refetchOfficers();
+      await refetchExpiredOfficers();
     } catch (error) {
       showToastMessage(error?.data?.message || 'Failed to lock user', 'error');
     }
@@ -359,8 +379,10 @@ const UserManagement = () => {
     try {
       await unlockOfficer(user._id).unwrap();
       showToastMessage(`User ${user.name} unlocked successfully!`, 'success');
-      refetchOfficers();
-      refetchExpiredOfficers();
+      
+      // Force refetch to update the UI
+      await refetchOfficers();
+      await refetchExpiredOfficers();
     } catch (error) {
       showToastMessage(error?.data?.message || 'Failed to unlock user', 'error');
     }
@@ -376,8 +398,10 @@ const UserManagement = () => {
         await activateOfficer(user._id).unwrap();
         showToastMessage(`User ${user.name} activated successfully!`, 'success');
       }
-      refetchOfficers();
-      refetchExpiredOfficers();
+      
+      // Force refetch to update the UI
+      await refetchOfficers();
+      await refetchExpiredOfficers();
     } catch (error) {
       showToastMessage(error?.data?.message || `Failed to ${user.isActive ? 'deactivate' : 'activate'} user`, 'error');
     }
@@ -392,12 +416,28 @@ const UserManagement = () => {
 
       setShowResetPasswordModal(false);
       setSelectedUser(null);
-      refetchOfficers();
-      refetchExpiredOfficers();
+      
+      // Force refetch to update the UI
+      await refetchOfficers();
+      await refetchExpiredOfficers();
 
     } catch (error) {
       setErrors({ reset: error?.data?.message || 'Failed to reset password. Please try again.' });
     }
+  };
+
+  // Handle filter by role click - PREVENT EVENT PROPAGATION
+  const handleRoleClick = (e, role) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setFilterRole(role);
+  };
+
+  // Handle filter by status click - PREVENT EVENT PROPAGATION
+  const handleStatusClick = (e, status) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setFilterStatus(status);
   };
 
   // Reset form
@@ -511,28 +551,33 @@ const UserManagement = () => {
               />
             </div>
           </div>
+          
+          {/* Role Filter - Dynamic from backend data */}
           <select
             value={filterRole}
             onChange={(e) => setFilterRole(e.target.value)}
             className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
             <option value="all">All Roles</option>
-            <option value="COLLECTOR">Collector</option>
-            <option value="DISTRICT_CLERK">District Clerk</option>
-            <option value="TEHSILDAR">Tehsildar</option>
-            <option value="TEHSIL_CLERK">Tehsil Clerk</option>
-            <option value="SARPANCH">Sarpanch</option>
-            <option value="GRAM_SEVAK">Gram Sevak</option>
+            {uniqueRoles.filter(role => role !== 'all').map(role => (
+              <option key={role} value={role}>
+                {formatRole(role)}
+              </option>
+            ))}
           </select>
+          
+          {/* Status Filter - Dynamic from backend data */}
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
             className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
             <option value="all">All Status</option>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-            <option value="locked">Locked</option>
+            {uniqueStatuses.filter(status => status !== 'all').map(status => (
+              <option key={status} value={status}>
+                {status.charAt(0).toUpperCase() + status.slice(1)}
+              </option>
+            ))}
           </select>
           
           {/* Expired Password Filter */}
@@ -625,9 +670,13 @@ const UserManagement = () => {
                           </div>
                         </td>
                         <td className="px-6 py-4">
-                          <span className={`text-xs px-2 py-1 rounded-full ${getRoleColor(user.role)}`}>
-                            {user.role?.replace('_', ' ')}
-                          </span>
+                          <button
+                            onClick={(e) => handleRoleClick(e, user.role)}
+                            className={`text-xs px-2 py-1 rounded-full hover:opacity-80 transition-opacity cursor-pointer ${getRoleColor(user.role)}`}
+                            title={`Click to filter by ${formatRole(user.role)}`}
+                          >
+                            {formatRole(user.role)}
+                          </button>
                         </td>
                         <td className="px-6 py-4">
                           <p className="text-sm text-gray-900">{user.office?.officeName || '-'}</p>
@@ -639,9 +688,13 @@ const UserManagement = () => {
                           {user.employeeId || '-'}
                         </td>
                         <td className="px-6 py-4">
-                          <span className={`text-xs px-2 py-1 rounded-full ${getStatusColor(status)}`}>
+                          <button
+                            onClick={(e) => handleStatusClick(e, status)}
+                            className={`text-xs px-2 py-1 rounded-full hover:opacity-80 transition-opacity cursor-pointer ${getStatusColor(status)}`}
+                            title={`Click to filter by ${status} users`}
+                          >
                             {status.toUpperCase()}
-                          </span>
+                          </button>
                           {user.lockReason && user.locked && (
                             <p className="text-xs text-gray-500 mt-1" title={user.lockReason}>
                               Reason: {user.lockReason.substring(0, 20)}...
@@ -673,6 +726,7 @@ const UserManagement = () => {
                               <Edit3 className="w-4 h-4 text-gray-500" />
                             </button>
                             
+                            {/* Lock/Unlock button - Always show based on user.locked status */}
                             {user.locked ? (
                               <button
                                 onClick={() => handleUnlockUser(user)}
@@ -741,6 +795,18 @@ const UserManagement = () => {
                 <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">No officers found</h3>
                 <p className="text-gray-500 mb-6">Try adjusting your search or filters</p>
+                {(filterRole !== 'all' || filterStatus !== 'all' || showExpiredOnly) && (
+                  <button
+                    onClick={() => {
+                      setFilterRole('all');
+                      setFilterStatus('all');
+                      setShowExpiredOnly(false);
+                    }}
+                    className="text-sm text-blue-600 hover:text-blue-800 underline"
+                  >
+                    Clear all filters
+                  </button>
+                )}
               </div>
             )}
           </>
@@ -1236,79 +1302,145 @@ const UserManagement = () => {
       )}
 
       {/* Lock User Modal */}
-      {showLockModal && selectedUser && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-md w-full">
-            <div className="p-6 border-b border-gray-200">
-              <h2 className="text-xl font-bold text-gray-900">Lock User Account</h2>
-            </div>
+      {/* Lock/Unlock User Modal */}
+{showLockModal && selectedUser && (
+  
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className="bg-white rounded-xl max-w-md w-full">
+      <div className="p-6 border-b border-gray-200">
+        <h2 className="text-xl font-bold text-gray-900">
+          {selectedUser.isLocked ? 'Unlock User Account' : 'Lock User Account'}
+        </h2>
+      </div>
 
-            <div className="p-6">
-              <div className="flex items-center justify-center mb-4">
-                <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center">
-                  <Lock className="w-8 h-8 text-yellow-600" />
-                </div>
-              </div>
-
-              <p className="text-center text-gray-600 mb-4">
-                Lock account for <span className="font-medium">{selectedUser.name}</span>
-              </p>
-
-              <div className="mb-4">
-                <label className="block text-xs font-medium text-gray-700 mb-1">
-                  Reason for locking <span className="text-red-500">*</span>
-                </label>
-                <textarea
-                  value={lockReason}
-                  onChange={(e) => {
-                    setLockReason(e.target.value);
-                    if (errors.lockReason) {
-                      setErrors(prev => ({ ...prev, lockReason: '' }));
-                    }
-                  }}
-                  rows="3"
-                  className={`w-full px-3 py-2 text-sm border rounded-lg ${
-                    errors.lockReason ? 'border-red-500' : 'border-gray-300'
-                  } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
-                  placeholder="Enter reason for locking this account..."
-                />
-                {errors.lockReason && (
-                  <p className="mt-1 text-xs text-red-600">{errors.lockReason}</p>
-                )}
-              </div>
-
-              <div className="flex space-x-3">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowLockModal(false);
-                    setLockReason('');
-                    setSelectedUser(null);
-                    setErrors({});
-                  }}
-                  className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleLockUser}
-                  disabled={isLocking}
-                  className="flex-1 flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-yellow-600 rounded-lg hover:bg-yellow-700 transition-colors disabled:opacity-50"
-                >
-                  {isLocking ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Locking...
-                    </>
-                  ) : (
-                    'Lock Account'
-                  )}
-                </button>
-              </div>
-            </div>
+      <div className="p-6">
+        <div className="flex items-center justify-center mb-4">
+          <div className={`w-16 h-16 rounded-full flex items-center justify-center ${
+            selectedUser.isLocked ? 'bg-green-100' : 'bg-yellow-100'
+          }`}>
+            {selectedUser.isLocked ? (
+              <Unlock className="w-8 h-8 text-green-600" />
+            ) : (
+              <Lock className="w-8 h-8 text-yellow-600" />
+            )}
           </div>
         </div>
-      )}
+
+        <p className="text-center text-gray-600 mb-4">
+          {selectedUser.isLocked ? 'Unlock account for' : 'Lock account for'} 
+          <span className="font-medium"> {selectedUser.name}</span>
+        </p>
+
+        {selectedUser.isLocked ? (
+          /* Unlock Confirmation - No reason needed */
+          <>
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+              <p className="text-sm text-green-800 flex items-center">
+                <CheckCircle className="w-4 h-4 mr-2 flex-shrink-0" />
+                This user is currently locked. Unlocking will restore their access to the system.
+              </p>
+            </div>
+            
+            {selectedUser.lockReason && (
+              <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+                <p className="text-xs text-gray-500 mb-1">Original lock reason:</p>
+                <p className="text-sm text-gray-700">{selectedUser.lockReason}</p>
+              </div>
+            )}
+          </>
+        ) : (
+          /* Lock with Reason */
+          <>
+            <div className="mb-4">
+              <label className="block text-xs font-medium text-gray-700 mb-1">
+                Reason for locking <span className="text-red-500">*</span>
+              </label>
+              <textarea
+                value={lockReason}
+                onChange={(e) => {
+                  setLockReason(e.target.value);
+                  if (errors.lockReason) {
+                    setErrors(prev => ({ ...prev, lockReason: '' }));
+                  }
+                }}
+                rows="3"
+                className={`w-full px-3 py-2 text-sm border rounded-lg ${
+                  errors.lockReason ? 'border-red-500' : 'border-gray-300'
+                } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                placeholder="Enter reason for locking this account..."
+              />
+              {errors.lockReason && (
+                <p className="mt-1 text-xs text-red-600">{errors.lockReason}</p>
+              )}
+            </div>
+
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+              <p className="text-xs text-yellow-800 flex items-start">
+                <AlertCircle className="w-4 h-4 mr-2 flex-shrink-0 mt-0.5" />
+                Locking this account will prevent the user from accessing the system until unlocked.
+              </p>
+            </div>
+          </>
+        )}
+
+        <div className="flex space-x-3">
+          <button
+            type="button"
+            onClick={() => {
+              setShowLockModal(false);
+              setLockReason('');
+              setSelectedUser(null);
+              setErrors({});
+            }}
+            className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+          >
+            Cancel
+          </button>
+          
+          {selectedUser.isLocked ? (
+            /* Unlock Button */
+            <button
+              onClick={() => handleUnlockUser(selectedUser)}
+              disabled={isUnlocking}
+              className="flex-1 flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+            >
+              {isUnlocking ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Unlocking...
+                </>
+              ) : (
+                <>
+                  <Unlock className="w-4 h-4 mr-2" />
+                  Unlock Account
+                </>
+              )}
+            </button>
+          ) : (
+            /* Lock Button */
+            <button
+              onClick={handleLockUser}
+              disabled={isLocking}
+              className="flex-1 flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-yellow-600 rounded-lg hover:bg-yellow-700 transition-colors disabled:opacity-50"
+            >
+              {isLocking ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Locking...
+                </>
+              ) : (
+                <>
+                  <Lock className="w-4 h-4 mr-2" />
+                  Lock Account
+                </>
+              )}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  </div>
+)}
 
       {/* Reset Password Modal */}
       {showResetPasswordModal && selectedUser && (

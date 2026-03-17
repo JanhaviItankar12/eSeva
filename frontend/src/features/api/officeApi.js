@@ -143,6 +143,13 @@ export const officeApi = createApi({
       },
     }),
 
+    officerRoles:builder.query({
+      query:()=>({
+        url:"/offices/get-roles",
+        method:'GET'
+      })
+    })
+
 
   })
 });
@@ -155,6 +162,7 @@ export const {
   useGetOfficeByIdQuery,
   useGetActiveDistrictsQuery,
   useGetActiveTehsilsQuery,
-  useGetActiveGramPanchayatsQuery
+  useGetActiveGramPanchayatsQuery,
+  useOfficerRolesQuery
 
 } = officeApi;

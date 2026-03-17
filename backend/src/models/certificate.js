@@ -83,8 +83,8 @@ const certificateSchema = new mongoose.Schema({
 
   feeType: {
     type: String,
-    enum: ["FREE", "FIXED", "VARIABLE"],
-    default: "FIXED"
+    enum: ["Fixed", "Variable", "Urgent Only"],
+    default: "Fixed"
   },
 
   //  Required Documents
@@ -97,7 +97,7 @@ const certificateSchema = new mongoose.Schema({
       formats: [
         {
           type: String,
-          enum: ["PDF", "JPG", "JPEG", "PNG","DOC","DOCX","XLS","XLSX"]
+          enum: ["PDF", "JPG", "PNG", "JPEG", "DOC", "DOCX"]
         }
       ],
 

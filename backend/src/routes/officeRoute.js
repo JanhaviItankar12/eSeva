@@ -1,7 +1,7 @@
 import express from "express";
 import { protect } from "../middleware/authMiddleware.js";
 import { authorizeRoles } from "../middleware/authorizedRoles.js";
-import { getActiveDistricts, getActiveGramPanchayatsByTehsil, getActiveTehsilsByDistrict, getDistricts, getGramPanchayatsByTehsil, getOfficeById, getOffices, getTehsilsByDistrict } from "../Controllers/Admin/officeController.js";
+import { getActiveDistricts, getActiveGramPanchayatsByTehsil, getActiveTehsilsByDistrict, getDistricts, getGramPanchayatsByTehsil, getOfficeById, getOfficerRoles, getOffices, getTehsilsByDistrict } from "../Controllers/Admin/officeController.js";
 
 
 const router=express.Router();
@@ -29,7 +29,10 @@ router.get('/tehsils/:districtId/active',  getActiveTehsilsByDistrict);
 // Get  active gram panchayats by tehsil
 router.get('/gram-panchayats/:tehsilId/active',  getActiveGramPanchayatsByTehsil);
 
+router.get("/get-roles",getOfficerRoles);
 router.get('/:id', getOfficeById);
+
+
 
 export default router;
 

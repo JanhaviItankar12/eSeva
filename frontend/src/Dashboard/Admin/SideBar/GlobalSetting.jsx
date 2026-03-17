@@ -40,6 +40,7 @@ import {
   Monitor,
   HelpCircle
 } from 'lucide-react';
+import { useGetSystemSettingsQuery, useUpdateSystemSettingsMutation } from '../../../features/api/adminApi';
 
 // Mock current settings
 const mockSettings = {
@@ -141,7 +142,11 @@ const mockSettings = {
 };
 
 const GlobalSetting = () => {
-  const [settings, setSettings] = useState(mockSettings);
+
+  const { data: settingsData, isLoading: isLoadingSettings } = useGetSystemSettingsQuery();
+  const [updateSystemSettings, { isLoading: isUpdatingSettings }] = useUpdateSystemSettingsMutation();
+
+  const [settings, setSettings] = useState(settingsData?.data);
   const [activeSection, setActiveSection] = useState('system');
   const [searchTerm, setSearchTerm] = useState('');
   const [showSuccess, setShowSuccess] = useState(false);
@@ -167,6 +172,8 @@ const GlobalSetting = () => {
     { id: 'maintenance', name: 'Maintenance', icon: Wrench, description: 'System downtime control' }
   ];
 
+  
+
   // Handle input change
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -189,18 +196,22 @@ const GlobalSetting = () => {
   };
 
   // Handle save settings
-  const handleSave = async () => {
+ const handleSave = async () => {
+  try {
     setIsSaving(true);
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    setSuccessMessage('Settings saved successfully!');
+
+    await updateSystemSettings(settings).unwrap();
+
+    setSuccessMessage("Settings saved successfully!");
     setShowSuccess(true);
+
+  } catch (error) {
+    console.error(error);
+  } finally {
     setIsSaving(false);
-    
     setTimeout(() => setShowSuccess(false), 3000);
-  };
+  }
+};
 
   // Handle reset to defaults
   const handleReset = () => {
@@ -352,7 +363,7 @@ const GlobalSetting = () => {
                       <input
                         type="text"
                         name="systemName"
-                        value={settings.systemName}
+                        value={settingsData?.data?.systemName}
                         onChange={handleInputChange}
                         className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
@@ -364,7 +375,7 @@ const GlobalSetting = () => {
                       <input
                         type="url"
                         name="systemUrl"
-                        value={settings.systemUrl}
+                        value={settingsData?.data?.systemUrl}
                         onChange={handleInputChange}
                         className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
@@ -376,7 +387,7 @@ const GlobalSetting = () => {
                       <input
                         type="email"
                         name="supportEmail"
-                        value={settings.supportEmail}
+                        value={settingsData?.data?.supportEmail}
                         onChange={handleInputChange}
                         className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
@@ -388,7 +399,7 @@ const GlobalSetting = () => {
                       <input
                         type="tel"
                         name="supportPhone"
-                        value={settings.supportPhone}
+                        value={settingsData?.data?.supportPhone}
                         onChange={handleInputChange}
                         className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
@@ -399,7 +410,7 @@ const GlobalSetting = () => {
                       </label>
                       <select
                         name="timezone"
-                        value={settings.timezone}
+                        value={settingsData?.data?.timezone}
                         onChange={handleInputChange}
                         className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       >
@@ -414,7 +425,7 @@ const GlobalSetting = () => {
                       </label>
                       <select
                         name="dateFormat"
-                        value={settings.dateFormat}
+                        value={settingsData?.data?.dateFormat}
                         onChange={handleInputChange}
                         className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       >
@@ -440,7 +451,7 @@ const GlobalSetting = () => {
                         <input
                           type="number"
                           name="minPasswordLength"
-                          value={settings.minPasswordLength}
+                          value={settingsData?.data?.minPasswordLength}
                           onChange={handleInputChange}
                           min="6"
                           max="20"
@@ -453,7 +464,7 @@ const GlobalSetting = () => {
                         <input
                           type="checkbox"
                           name="requireUppercase"
-                          checked={settings.requireUppercase}
+                          checked={settingsData?.data?.requireUppercase}
                           onChange={handleInputChange}
                           className="rounded text-blue-600"
                         />
@@ -463,7 +474,7 @@ const GlobalSetting = () => {
                         <input
                           type="checkbox"
                           name="requireNumbers"
-                          checked={settings.requireNumbers}
+                          checked={settingsData?.data?.requireNumbers}
                           onChange={handleInputChange}
                           className="rounded text-blue-600"
                         />
@@ -473,7 +484,7 @@ const GlobalSetting = () => {
                         <input
                           type="checkbox"
                           name="requireSpecialChars"
-                          checked={settings.requireSpecialChars}
+                          checked={settingsData?.data?.requireSpecialChars}
                           onChange={handleInputChange}
                           className="rounded text-blue-600"
                         />
@@ -492,7 +503,7 @@ const GlobalSetting = () => {
                         <input
                           type="number"
                           name="sessionTimeout"
-                          value={settings.sessionTimeout}
+                          value={settingsData?.data?.sessionTimeout}
                           onChange={handleInputChange}
                           className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         />
@@ -504,7 +515,7 @@ const GlobalSetting = () => {
                         <input
                           type="number"
                           name="maxLoginAttempts"
-                          value={settings.maxLoginAttempts}
+                          value={settingsData?.data?.maxLoginAttempts}
                           onChange={handleInputChange}
                           className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         />
@@ -516,7 +527,7 @@ const GlobalSetting = () => {
                         <input
                           type="number"
                           name="accountLockDuration"
-                          value={settings.accountLockDuration}
+                          value={settingsData?.data?.accountLockDuration}
                           onChange={handleInputChange}
                           className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         />
@@ -527,7 +538,7 @@ const GlobalSetting = () => {
                         <input
                           type="checkbox"
                           name="enable2FA"
-                          checked={settings.enable2FA}
+                          checked={settingsData?.data?.enable2FA}
                           onChange={handleInputChange}
                           className="rounded text-blue-600"
                         />
@@ -537,7 +548,7 @@ const GlobalSetting = () => {
                         <input
                           type="checkbox"
                           name="enableCaptcha"
-                          checked={settings.enableCaptcha}
+                          checked={settingsData?.data?.enableCaptcha}
                           onChange={handleInputChange}
                           className="rounded text-blue-600"
                         />
@@ -559,7 +570,7 @@ const GlobalSetting = () => {
                       <input
                         type="number"
                         name="maxFileSize"
-                        value={settings.maxFileSize}
+                        value={settingsData?.data?.maxFileSize}
                         onChange={handleInputChange}
                         className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
@@ -571,7 +582,7 @@ const GlobalSetting = () => {
                       <input
                         type="number"
                         name="maxFilesPerApplication"
-                        value={settings.maxFilesPerApplication}
+                        value={settingsData?.data?.maxFilesPerApplication}
                         onChange={handleInputChange}
                         className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
@@ -587,7 +598,7 @@ const GlobalSetting = () => {
                         <label key={format} className="flex items-center space-x-2">
                           <input
                             type="checkbox"
-                            checked={settings.allowedFileTypes.includes(format)}
+                            checked={settingsData?.data?.allowedFileTypes.includes(format)}
                             onChange={(e) => handleArrayChange('allowedFileTypes', format, e.target.checked)}
                             className="rounded text-blue-600"
                           />
@@ -602,7 +613,7 @@ const GlobalSetting = () => {
                       <input
                         type="checkbox"
                         name="enableCompression"
-                        checked={settings.enableCompression}
+                        checked={settingsData?.data?.enableCompression}
                         onChange={handleInputChange}
                         className="rounded text-blue-600"
                       />
@@ -616,7 +627,7 @@ const GlobalSetting = () => {
                     </label>
                     <select
                       name="storageLocation"
-                      value={settings.storageLocation}
+                      value={settingsData?.data?.storageLocation}
                       onChange={handleInputChange}
                       className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
@@ -640,7 +651,7 @@ const GlobalSetting = () => {
                       <input
                         type="text"
                         name="smtpServer"
-                        value={settings.smtpServer}
+                        value={settingsData?.data?.smtpServer}
                         onChange={handleInputChange}
                         className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
@@ -652,7 +663,7 @@ const GlobalSetting = () => {
                       <input
                         type="number"
                         name="smtpPort"
-                        value={settings.smtpPort}
+                        value={settingsData?.data?.smtpPort}
                         onChange={handleInputChange}
                         className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
@@ -664,7 +675,7 @@ const GlobalSetting = () => {
                       <input
                         type="text"
                         name="smtpUsername"
-                        value={settings.smtpUsername}
+                        value={settingsData?.data?.smtpUsername}
                         onChange={handleInputChange}
                         className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
@@ -677,7 +688,7 @@ const GlobalSetting = () => {
                         <input
                           type={showPasswordFields.smtpPassword ? 'text' : 'password'}
                           name="smtpPassword"
-                          value={settings.smtpPassword}
+                          value={settingsData?.data?.smtpPassword}
                           onChange={handleInputChange}
                           className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-10"
                         />
@@ -697,7 +708,7 @@ const GlobalSetting = () => {
                       <input
                         type="email"
                         name="fromEmail"
-                        value={settings.fromEmail}
+                        value={settingsData?.data?.fromEmail}
                         onChange={handleInputChange}
                         className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
@@ -709,7 +720,7 @@ const GlobalSetting = () => {
                       <input
                         type="text"
                         name="fromName"
-                        value={settings.fromName}
+                        value={settingsData?.data?.fromName}
                         onChange={handleInputChange}
                         className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
@@ -720,7 +731,7 @@ const GlobalSetting = () => {
                     <input
                       type="checkbox"
                       name="enableSSL"
-                      checked={settings.enableSSL}
+                      checked={settingsData?.data?.enableSSL}
                       onChange={handleInputChange}
                       className="rounded text-blue-600"
                     />
@@ -739,7 +750,7 @@ const GlobalSetting = () => {
                       </label>
                       <select
                         name="smsProvider"
-                        value={settings.smsProvider}
+                        value={settingsData?.data?.smsProvider}
                         onChange={handleInputChange}
                         className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       >
@@ -755,7 +766,7 @@ const GlobalSetting = () => {
                       </label>
                       <div className="relative">
                         <input
-                          type={showPasswordFields.smsApiKey ? 'text' : 'password'}
+                          type={settingsData?.data?.smsApiKey ? 'text' : 'password'}
                           name="smsApiKey"
                           value={settings.smsApiKey}
                           onChange={handleInputChange}
@@ -777,7 +788,7 @@ const GlobalSetting = () => {
                       <input
                         type="text"
                         name="smsSenderId"
-                        value={settings.smsSenderId}
+                        value={settingsData?.data?.smsSenderId}
                         onChange={handleInputChange}
                         maxLength="6"
                         className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -790,7 +801,7 @@ const GlobalSetting = () => {
                       <input
                         type="text"
                         name="smsTemplate"
-                        value={settings.smsTemplate}
+                        value={settingsData?.data?.smsTemplate}
                         onChange={handleInputChange}
                         className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
@@ -801,7 +812,7 @@ const GlobalSetting = () => {
                     <input
                       type="checkbox"
                       name="enableSMS"
-                      checked={settings.enableSMS}
+                      checked={settingsData?.data?.enableSMS}
                       onChange={handleInputChange}
                       className="rounded text-blue-600"
                     />
@@ -821,7 +832,7 @@ const GlobalSetting = () => {
                       <input
                         type="number"
                         name="defaultSLADays"
-                        value={settings.defaultSLADays}
+                        value={settingsData?.data?.defaultSLADays}
                         onChange={handleInputChange}
                         className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
@@ -833,7 +844,7 @@ const GlobalSetting = () => {
                       <input
                         type="number"
                         name="reminderDays"
-                        value={settings.reminderDays}
+                        value={settingsData?.data?.reminderDays}
                         onChange={handleInputChange}
                         className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
@@ -845,7 +856,7 @@ const GlobalSetting = () => {
                       <input
                         type="number"
                         name="escalationDays"
-                        value={settings.escalationDays}
+                        value={settingsData?.data?.escalationDays}
                         onChange={handleInputChange}
                         className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
@@ -869,7 +880,7 @@ const GlobalSetting = () => {
                         <label key={day.id} className="flex items-center space-x-2">
                           <input
                             type="checkbox"
-                            checked={settings.workingDays.includes(day.id)}
+                            checked={settingsData?.data?.workingDays.includes(day.id)}
                             onChange={(e) => handleArrayChange('workingDays', day.id, e.target.checked)}
                             className="rounded text-blue-600"
                           />
@@ -884,7 +895,7 @@ const GlobalSetting = () => {
                       <input
                         type="checkbox"
                         name="enableUrgent"
-                        checked={settings.enableUrgent}
+                        checked={settingsData?.data?.enableUrgent}
                         onChange={handleInputChange}
                         className="rounded text-blue-600"
                       />
@@ -900,7 +911,7 @@ const GlobalSetting = () => {
                       <input
                         type="number"
                         name="urgentFeeMultiplier"
-                        value={settings.urgentFeeMultiplier}
+                        value={settingsData?.data?.urgentFeeMultiplier}
                         onChange={handleInputChange}
                         step="0.5"
                         min="1"
@@ -918,7 +929,7 @@ const GlobalSetting = () => {
                     <input
                       type="checkbox"
                       name="allowPublicRegistration"
-                      checked={settings.allowPublicRegistration}
+                      checked={settingsData?.data?.allowPublicRegistration}
                       onChange={handleInputChange}
                       className="rounded text-blue-600"
                     />
@@ -931,7 +942,7 @@ const GlobalSetting = () => {
                     </label>
                     <select
                       name="emailVerification"
-                      value={settings.emailVerification}
+                      value={settingsData?.data?.emailVerification}
                       onChange={handleInputChange}
                       className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
@@ -947,7 +958,7 @@ const GlobalSetting = () => {
                     </label>
                     <select
                       name="mobileVerification"
-                      value={settings.mobileVerification}
+                      value={settingsData?.data?.mobileVerification}
                       onChange={handleInputChange}
                       className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
@@ -963,13 +974,12 @@ const GlobalSetting = () => {
                     </label>
                     <select
                       name="defaultRole"
-                      value={settings.defaultRole}
+                      value={settingsData?.data?.defaultRole}
                       onChange={handleInputChange}
                       className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
                       <option value="CITIZEN">Citizen</option>
-                      <option value="GRAM_SEVAK">Gram Sevak</option>
-                      <option value="SARPANCH">Sarpanch</option>
+                     
                     </select>
                   </div>
 
@@ -977,7 +987,7 @@ const GlobalSetting = () => {
                     <input
                       type="checkbox"
                       name="autoApproveCitizens"
-                      checked={settings.autoApproveCitizens}
+                      checked={settingsData?.data?.autoApproveCitizens}
                       onChange={handleInputChange}
                       className="rounded text-blue-600"
                     />
@@ -996,15 +1006,12 @@ const GlobalSetting = () => {
                       </label>
                       <select
                         name="defaultLanguage"
-                        value={settings.defaultLanguage}
+                        value={settingsData?.data?.defaultLanguage}
                         onChange={handleInputChange}
                         className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       >
                         <option value="en">English</option>
-                        <option value="hi">Hindi</option>
-                        <option value="ta">Tamil</option>
-                        <option value="te">Telugu</option>
-                        <option value="bn">Bengali</option>
+                       
                       </select>
                     </div>
                     <div>
@@ -1013,12 +1020,12 @@ const GlobalSetting = () => {
                       </label>
                       <select
                         name="currency"
-                        value={settings.currency}
+                        value={settingsData?.data?.currency}
                         onChange={handleInputChange}
                         className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       >
                         <option value="INR">Indian Rupee (₹)</option>
-                        <option value="USD">US Dollar ($)</option>
+                     
                       </select>
                     </div>
                     <div>
@@ -1027,7 +1034,7 @@ const GlobalSetting = () => {
                       </label>
                       <select
                         name="numberFormat"
-                        value={settings.numberFormat}
+                        value={settingsData?.data?.numberFormat}
                         onChange={handleInputChange}
                         className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       >
@@ -1037,16 +1044,6 @@ const GlobalSetting = () => {
                     </div>
                   </div>
 
-                  <label className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      name="enableMultiLanguage"
-                      checked={settings.enableMultiLanguage}
-                      onChange={handleInputChange}
-                      className="rounded text-blue-600"
-                    />
-                    <span className="text-sm text-gray-700">Enable multi-language support</span>
-                  </label>
                 </div>
               )}
 
@@ -1063,7 +1060,7 @@ const GlobalSetting = () => {
                       <input
                         type="number"
                         name="cacheDuration"
-                        value={settings.cacheDuration}
+                        value={settingsData?.data?.cacheDuration}
                         onChange={handleInputChange}
                         className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
@@ -1075,7 +1072,7 @@ const GlobalSetting = () => {
                       <input
                         type="number"
                         name="paginationLimit"
-                        value={settings.paginationLimit}
+                        value={settingsData?.data?.paginationLimit}
                         onChange={handleInputChange}
                         className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
@@ -1087,7 +1084,7 @@ const GlobalSetting = () => {
                       <input
                         type="number"
                         name="dashboardRefresh"
-                        value={settings.dashboardRefresh}
+                        value={settingsData?.data?.dashboardRefresh}
                         onChange={handleInputChange}
                         className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
@@ -1099,7 +1096,7 @@ const GlobalSetting = () => {
                       <input
                         type="number"
                         name="logRetention"
-                        value={settings.logRetention}
+                        value={settingsData?.data?.logRetention}
                         onChange={handleInputChange}
                         className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
@@ -1110,7 +1107,7 @@ const GlobalSetting = () => {
                     <input
                       type="checkbox"
                       name="enableLogging"
-                      checked={settings.enableLogging}
+                      checked={settingsData?.data?.enableLogging}
                       onChange={handleInputChange}
                       className="rounded text-blue-600"
                     />
@@ -1126,7 +1123,7 @@ const GlobalSetting = () => {
                     <input
                       type="checkbox"
                       name="enableAutoBackup"
-                      checked={settings.enableAutoBackup}
+                      checked={settingsData?.data?.enableAutoBackup}
                       onChange={handleInputChange}
                       className="rounded text-blue-600"
                     />
@@ -1142,7 +1139,7 @@ const GlobalSetting = () => {
                           </label>
                           <select
                             name="backupFrequency"
-                            value={settings.backupFrequency}
+                            value={settingsData?.data?.backupFrequency}
                             onChange={handleInputChange}
                             className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           >
@@ -1158,7 +1155,7 @@ const GlobalSetting = () => {
                           <input
                             type="time"
                             name="backupTime"
-                            value={settings.backupTime}
+                            value={settingsData?.data?.backupTime}
                             onChange={handleInputChange}
                             className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           />
@@ -1170,7 +1167,7 @@ const GlobalSetting = () => {
                           <input
                             type="number"
                             name="backupRetention"
-                            value={settings.backupRetention}
+                            value={settingsData?.data?.backupRetention}
                             onChange={handleInputChange}
                             className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           />
@@ -1181,7 +1178,7 @@ const GlobalSetting = () => {
                           </label>
                           <select
                             name="backupLocation"
-                            value={settings.backupLocation}
+                            value={settingsData?.data?.backupLocation}
                             onChange={handleInputChange}
                             className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           >
@@ -1205,7 +1202,7 @@ const GlobalSetting = () => {
                       <input
                         type="checkbox"
                         name="enableEmailNotifications"
-                        checked={settings.enableEmailNotifications}
+                        checked={settingsData?.data?.enableEmailNotifications}
                         onChange={handleInputChange}
                         className="rounded text-blue-600"
                       />
@@ -1215,7 +1212,7 @@ const GlobalSetting = () => {
                       <input
                         type="checkbox"
                         name="enableSMSNotifications"
-                        checked={settings.enableSMSNotifications}
+                        checked={settingsData?.data?.enableSMSNotifications}
                         onChange={handleInputChange}
                         className="rounded text-blue-600"
                       />
@@ -1225,7 +1222,7 @@ const GlobalSetting = () => {
                       <input
                         type="checkbox"
                         name="enableInAppNotifications"
-                        checked={settings.enableInAppNotifications}
+                        checked={settingsData?.data?.enableInAppNotifications}
                         onChange={handleInputChange}
                         className="rounded text-blue-600"
                       />
@@ -1239,7 +1236,7 @@ const GlobalSetting = () => {
                       <input
                         type="checkbox"
                         name="notifyStatusChange"
-                        checked={settings.notifyStatusChange}
+                        checked={settingsData?.data?.notifyStatusChange}
                         onChange={handleInputChange}
                         className="rounded text-blue-600"
                       />
@@ -1249,7 +1246,7 @@ const GlobalSetting = () => {
                       <input
                         type="checkbox"
                         name="notifyApproval"
-                        checked={settings.notifyApproval}
+                        checked={settingsData?.data?.notifyApproval}
                         onChange={handleInputChange}
                         className="rounded text-blue-600"
                       />
@@ -1259,7 +1256,7 @@ const GlobalSetting = () => {
                       <input
                         type="checkbox"
                         name="notifyRejection"
-                        checked={settings.notifyRejection}
+                        checked={settingsData?.data?.notifyRejection}
                         onChange={handleInputChange}
                         className="rounded text-blue-600"
                       />
@@ -1288,14 +1285,14 @@ const GlobalSetting = () => {
                     <input
                       type="checkbox"
                       name="maintenanceMode"
-                      checked={settings.maintenanceMode}
+                      checked={settingsData?.data?.maintenanceMode}
                       onChange={handleInputChange}
                       className="rounded text-blue-600"
                     />
                     <span className="text-sm text-gray-700">Enable Maintenance Mode</span>
                   </label>
 
-                  {settings.maintenanceMode && (
+                  {settingsData?.data?.maintenanceMode && (
                     <>
                       <div>
                         <label className="block text-xs font-medium text-gray-700 mb-1">
@@ -1303,7 +1300,7 @@ const GlobalSetting = () => {
                         </label>
                         <textarea
                           name="maintenanceMessage"
-                          value={settings.maintenanceMessage}
+                          value={settingsData?.data?.maintenanceMessage}
                           onChange={handleInputChange}
                           rows="3"
                           className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -1314,7 +1311,7 @@ const GlobalSetting = () => {
                         <input
                           type="checkbox"
                           name="allowAdminsDuringMaintenance"
-                          checked={settings.allowAdminsDuringMaintenance}
+                          checked={settingsData?.data?.allowAdminsDuringMaintenance}
                           onChange={handleInputChange}
                           className="rounded text-blue-600"
                         />

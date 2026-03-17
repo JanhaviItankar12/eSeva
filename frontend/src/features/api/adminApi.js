@@ -16,7 +16,7 @@ export const adminApi = createApi({
       return headers;
     },
   }),
-  tagTypes: ['Officer', "Officers", 'Office', 'District', 'Tehsil', 'Gram', 'Settings'],
+  tagTypes: ['Officer', "Officers", 'Office', 'District', 'Tehsil', 'Gram', 'Settings','Backups', 'Schedules'],
   endpoints: (builder) => ({
     createOfficer: builder.mutation({
       query: (userData) => ({
@@ -171,18 +171,196 @@ export const adminApi = createApi({
 
     //setting-template
     getSystemSettings: builder.query({
-      query: () => "/admin/system-settings",
+      query: () => "/admin/get/system-settings",
       providesTags: ['Settings'],
     }),
 
     updateSystemSettings: builder.mutation({
       query: (data) => ({
-        url: "/admin/system-settings",
+        url: "/admin/update/system-settings",
         method: "PUT",
         body: data,
       }),
       invalidatesTags: ['Settings'],
     }),
+
+    createCertificate: builder.mutation({
+      query: (formData) => ({
+        url: '/admin/create/certificate',
+        method: 'POST',
+        body: formData
+      })
+    }),
+
+    updateCertificate: builder.mutation({
+      query: ({ id, formData }) => ({
+        url: `/admin/certificate/${id}`,
+        method: 'PUT',
+        body: { formData }
+      })
+    }),
+
+    toggleCertificate: builder.mutation({
+      query: ({ id, isActive }) => ({
+        url: `/admin/toggle-certificate-status/${id}`,
+        method: 'PATCH',
+        body: { isActive }
+      })
+    }),
+
+
+
+    allCertificates: builder.query({
+      query: () => ({
+        url: '/admin/certificates/all',
+        method: 'GET'
+      })
+    }),
+
+    certificateById: builder.query({
+      query: (id) => ({
+        url: `/admin/certificate/${id}`,
+        method: 'GET'
+      })
+    }),
+
+
+    //system logs
+    getLogs: builder.query({
+      query: (params) => ({
+        url: `/admin/logs`,
+        method: "GET",
+        params
+      })
+    }),
+
+    clearLogs: builder.mutation({
+      query: (params) => ({
+        url: `/admin/logs`,
+        method: "DELETE",
+        params //filter
+      })
+    }),
+
+
+     //  GET BACKUP HISTORY
+    getBackups: builder.query({
+      query: () => ({
+        url: "/admin/backups",
+        method: "GET"
+      }),
+      providesTags: ['Backups']
+    }),
+
+    //  CREATE BACKUP
+    createBackup: builder.mutation({
+      query: () => ({
+        url: "/admin/backups",
+        method: "POST"
+      }),
+      invalidatesTags: ['Backups']
+    }),
+
+    //  GET SCHEDULES
+    getSchedules: builder.query({
+      query: () => ({
+        url: "/admin/schedules",
+        method: "GET"
+      }),
+      providesTags: ['Schedules']
+    }),
+
+    //  GET STORAGE INFO
+    getStorage: builder.query({
+      query: () => ({
+        url: "/admin/storage",
+        method: "GET"
+      })
+    }),
+
+    //  RESTORE BACKUP
+    restoreBackup: builder.mutation({
+      query: (id) => ({
+        url: `/admin/backups/${id}/restore`,
+        method: "POST"
+      }),
+      invalidatesTags: ["Backups"]
+    }),
+
+    //  DELETE BACKUP
+    deleteBackup: builder.mutation({
+      query: (id) => ({
+        url: `/admin/backups/${id}`,
+        method: "DELETE"
+      }),
+      invalidatesTags: ["Backups"]
+    }),
+
+    //  CREATE SCHEDULE
+    createSchedule: builder.mutation({
+      query: (data) => ({
+        url: "/admin/schedules",
+        method: "POST",
+        body: data
+      }),
+      invalidatesTags: ["Schedules"]
+    }),
+
+    // UPDATE SCHEDULE
+    updateSchedule: builder.mutation({
+      query: ({ id, data }) => ({
+        url: `/admin/schedules/${id}`,
+        method: "PUT",
+        body: data
+      }),
+      invalidatesTags: ["Schedules"]
+    }),
+
+    //  DELETE SCHEDULE
+    deleteSchedule: builder.mutation({
+      query: (id) => ({
+        url: `/admin/schedules/${id}`,
+        method: "DELETE"
+      }),
+      invalidatesTags: ["Schedules"]
+    }),
+
+    //  TOGGLE SCHEDULE (ACTIVE/INACTIVE)
+    toggleSchedule: builder.mutation({
+      query: (id) => ({
+        url: `/admin/schedules/${id}/toggle`,
+        method: "PATCH"
+      }),
+      invalidatesTags: ["Schedules"]
+    }),
+
+    //  UPDATE BACKUP SETTINGS
+    updateBackupSettings: builder.mutation({
+      query: (data) => ({
+        url: "/admin/settings/backup",
+        method: "PUT",
+        body: data
+      }),
+      invalidatesTags: ["Settings"]
+    }),
+
+    getBackupSettings: builder.query({
+      query: () => ({
+        url: "/admin/settings/backup",
+        method: "GET",
+        
+      }),
+      invalidatesTags: ["Settings"]
+    }),
+
+
+
+
+
+
+
+
+
 
 
 
@@ -207,5 +385,24 @@ export const {
   useLockCitizenMutation,
   useUnlockCitizenMutation,
   useGetSystemSettingsQuery,
-  useUpdateSystemSettingsMutation
+  useUpdateSystemSettingsMutation,
+  useCreateCertificateMutation,
+  useUpdateCertificateMutation,
+  useAllCertificatesQuery,
+  useToggleCertificateMutation,
+  useCertificateByIdQuery,
+  useGetLogsQuery,
+  useClearLogsMutation,
+  useCreateBackupMutation,
+  useGetBackupsQuery,
+  useGetSchedulesQuery,
+  useGetStorageQuery,
+  useRestoreBackupMutation,
+  useCreateScheduleMutation,
+  useDeleteBackupMutation,
+  useDeleteScheduleMutation,
+  useUpdateScheduleMutation,
+  useToggleScheduleMutation,
+  useUpdateBackupSettingsMutation,
+  useGetBackupSettingsQuery
 } = adminApi;

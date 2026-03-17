@@ -5,7 +5,11 @@ import { authorizeRoles } from "../middleware/authorizedRoles.js";
 import { registerOfficerValidator } from "../validators/authValidators.js";
 import { validateRequest } from "../validators/validateRequest.js";
 import { activateOffice, createOffice, deActivateOffice, updateOffice } from "../Controllers/Admin/officeController.js";
-import { createSystemDefaultSetting, updateTemplateSetting } from "../Controllers/Admin/globalSettingController.js";
+
+import { allCertificate, certificateById, createCertificate, toggleCertificateStatus, updateCertificate } from "../Controllers/Admin/certificateController.js";
+import { getSystemSettings, updateSystemSetting } from "../Controllers/Admin/globalSettingController.js";
+import { clearLogs, getAllLogs } from "../Controllers/Admin/logController.js";
+import { createBackup, createSchedule, deleteBackup, deleteSchedule, getBackupHistory, getBackupSettingData, getSchedules, getStorageInfo, restoreBackup, toggleSchedule, updateBackupSettings, updateSchedule } from "../Controllers/Admin/BackupAndRestore.js";
 
 const router=express.Router();
 
@@ -41,9 +45,39 @@ router.patch('/offices/:id/deActivate',protect,authorizeRoles("ADMIN"),deActivat
 router.patch('/offices/:id/activate',protect,authorizeRoles("ADMIN"),activateOffice);
 
 //global setting
-router.get("/admin/system-settings",protect,authorizeRoles("ADMIN"),createSystemDefaultSetting);
-router.put("/admin/system-settings",protect,authorizeRoles("ADMIN"),updateTemplateSetting);
+router.get('/get/system-settings',protect,authorizeRoles("ADMIN"),getSystemSettings);
+router.put('/update/system-settings',protect,authorizeRoles("ADMIN"),updateSystemSetting);
 
+//certificate configuration
+router.post('/create/certificate',protect,authorizeRoles("ADMIN"),createCertificate);
+router.get("/certificates/all",protect,authorizeRoles("ADMIN"),allCertificate);
+router.put("/certificate/:id",protect,authorizeRoles("ADMIN"),updateCertificate);
+
+router.patch("/toggle-certificate-status/:id",protect,authorizeRoles("ADMIN"),toggleCertificateStatus);
+router.get("/certificate/:id",protect,authorizeRoles("ADMIN"),certificateById);
+
+
+//logs
+router.get("/logs",protect,authorizeRoles("ADMIN"),getAllLogs);
+router.delete("/logs",protect,authorizeRoles("ADMIN"), clearLogs);
+
+//backup
+router.get("/backups",protect,authorizeRoles("ADMIN"), getBackupHistory);
+router.post("/backups",protect,authorizeRoles("ADMIN"), createBackup);
+router.get("/schedules",protect,authorizeRoles("ADMIN"), getSchedules);
+router.get("/storage", protect,authorizeRoles("ADMIN"),getStorageInfo);
+router.post("/backups/:id/restore",protect,authorizeRoles("ADMIN"), restoreBackup);
+router.delete("/backups/:id",protect,authorizeRoles("ADMIN"), deleteBackup);
+
+// Schedule
+router.post("/schedules",protect,authorizeRoles("ADMIN"), createSchedule);
+router.put("/schedules/:id",protect,authorizeRoles("ADMIN"), updateSchedule);
+router.delete("/schedules/:id",protect,authorizeRoles("ADMIN"), deleteSchedule);
+router.patch("/schedules/:id/toggle",protect,authorizeRoles("ADMIN"), toggleSchedule);
+
+// Settings
+router.put("/settings/backup", protect,authorizeRoles("ADMIN"),updateBackupSettings);
+router.get("/settings/backup",protect,authorizeRoles("ADMIN"),getBackupSettingData);
 
 
 export default router;

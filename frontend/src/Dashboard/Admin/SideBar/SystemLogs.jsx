@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Activity,
   Server,
@@ -39,323 +39,13 @@ import {
   Printer,
   Play,
   Pause,
-  StopCircle
+  StopCircle,
+  ChevronLeft,
+  ChevronsLeft,
+  ChevronRight as ChevronRightPaginate,
+  ChevronsRight
 } from 'lucide-react';
-
-// Mock System Logs Data
-const mockSystemLogs = [
-  // Login Logs
-  {
-    id: 1,
-    type: 'login',
-    category: 'authentication',
-    severity: 'info',
-    user: 'admin@eseva.gov.in',
-    userName: 'System Admin',
-    action: 'Successful login',
-    description: 'User logged in successfully from IP 192.168.1.100',
-    ip: '192.168.1.100',
-    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64) Chrome/120.0.0.0',
-    timestamp: '2026-02-23T09:15:00Z',
-    status: 'success',
-    sessionId: 'sess_abc123',
-    location: 'Lucknow, India'
-  },
-  {
-    id: 2,
-    type: 'login',
-    category: 'authentication',
-    severity: 'warning',
-    user: 'unknown@example.com',
-    userName: null,
-    action: 'Failed login attempt',
-    description: 'Invalid password for user gramsevak@example.com',
-    ip: '192.168.1.150',
-    userAgent: 'Mozilla/5.0 (iPhone) Safari/604.1',
-    timestamp: '2026-02-23T09:10:00Z',
-    status: 'failed',
-    failureReason: 'Invalid password',
-    attemptCount: 3
-  },
-  {
-    id: 3,
-    type: 'login',
-    category: 'authentication',
-    severity: 'critical',
-    user: null,
-    userName: null,
-    action: 'Multiple failed attempts',
-    description: '5 failed login attempts detected from IP 45.123.45.67',
-    ip: '45.123.45.67',
-    userAgent: 'Python/Requests',
-    timestamp: '2026-02-23T08:45:00Z',
-    status: 'blocked',
-    failureReason: 'Brute force attempt',
-    attemptCount: 5,
-    actionTaken: 'IP blocked temporarily'
-  },
-
-  // API Logs
-  {
-    id: 4,
-    type: 'api',
-    category: 'performance',
-    severity: 'error',
-    user: 'system',
-    userName: null,
-    action: 'API rate limit exceeded',
-    description: 'API /api/applications exceeded rate limit of 100 requests/minute',
-    ip: '192.168.1.200',
-    endpoint: '/api/applications',
-    method: 'GET',
-    statusCode: 429,
-    responseTime: 245,
-    timestamp: '2026-02-23T08:30:00Z',
-    status: 'error'
-  },
-  {
-    id: 5,
-    type: 'api',
-    category: 'performance',
-    severity: 'warning',
-    user: 'system',
-    userName: null,
-    action: 'Slow API response',
-    description: 'API /api/documents responded in 2.5 seconds (threshold: 1s)',
-    ip: '192.168.1.175',
-    endpoint: '/api/documents',
-    method: 'POST',
-    statusCode: 200,
-    responseTime: 2450,
-    timestamp: '2026-02-23T08:15:00Z',
-    status: 'warning'
-  },
-
-  // Database Logs
-  {
-    id: 6,
-    type: 'database',
-    category: 'system',
-    severity: 'error',
-    user: 'system',
-    userName: null,
-    action: 'Database connection timeout',
-    description: 'Connection to MongoDB failed after 30 seconds',
-    database: 'MongoDB',
-    operation: 'connect',
-    errorCode: 'ETIMEDOUT',
-    timestamp: '2026-02-23T08:45:00Z',
-    status: 'error',
-    recovery: 'Auto-reconnected after 5 seconds'
-  },
-  {
-    id: 7,
-    type: 'database',
-    category: 'system',
-    severity: 'info',
-    user: 'system',
-    userName: null,
-    action: 'Database backup completed',
-    description: 'Automated backup of all collections completed successfully',
-    database: 'MongoDB',
-    operation: 'backup',
-    size: '2.4 GB',
-    duration: '45 seconds',
-    timestamp: '2026-02-23T03:00:00Z',
-    status: 'success'
-  },
-
-  // Server Logs
-  {
-    id: 8,
-    type: 'server',
-    category: 'system',
-    severity: 'critical',
-    user: 'system',
-    userName: null,
-    action: 'Server CPU spike',
-    description: 'CPU usage reached 98% for 5 minutes',
-    server: 'app-server-01',
-    metric: 'cpu',
-    value: '98%',
-    threshold: '80%',
-    timestamp: '2026-02-23T07:30:00Z',
-    status: 'critical',
-    actionTaken: 'Auto-scaling triggered'
-  },
-  {
-    id: 9,
-    type: 'server',
-    category: 'system',
-    severity: 'warning',
-    user: 'system',
-    userName: null,
-    action: 'Disk space low',
-    description: '/var partition is at 85% capacity',
-    server: 'db-server-01',
-    metric: 'disk',
-    value: '85%',
-    threshold: '80%',
-    timestamp: '2026-02-23T06:15:00Z',
-    status: 'warning'
-  },
-
-  // Application Logs
-  {
-    id: 10,
-    type: 'application',
-    category: 'business',
-    severity: 'info',
-    user: 'rajesh.k@example.com',
-    userName: 'Rajesh Kumar',
-    action: 'Application submitted',
-    description: 'New income certificate application submitted (ID: eSEVA/2026/IN/00123)',
-    applicationId: 'eSEVA/2026/IN/00123',
-    certificateType: 'INCOME',
-    timestamp: '2026-02-23T10:30:00Z',
-    status: 'success'
-  },
-  {
-    id: 11,
-    type: 'application',
-    category: 'business',
-    severity: 'warning',
-    user: 'priya.tehsil@eseva.gov.in',
-    userName: 'Priya Singh',
-    action: 'Application correction requested',
-    description: 'Correction requested for residence certificate (ID: eSEVA/2026/RES/00189)',
-    applicationId: 'eSEVA/2026/RES/00189',
-    certificateType: 'RESIDENCE',
-    reason: 'Address proof not clear',
-    timestamp: '2026-02-23T09:45:00Z',
-    status: 'warning'
-  },
-
-  // Security Logs
-  {
-    id: 12,
-    type: 'security',
-    category: 'authentication',
-    severity: 'critical',
-    user: 'system',
-    userName: null,
-    action: 'Suspicious activity detected',
-    description: 'Multiple access attempts to admin endpoints from unauthorized IP',
-    ip: '103.45.67.89',
-    endpoint: '/api/admin/*',
-    attemptCount: 15,
-    timestamp: '2026-02-23T08:20:00Z',
-    status: 'blocked',
-    actionTaken: 'IP added to blacklist'
-  },
-  {
-    id: 13,
-    type: 'security',
-    category: 'authorization',
-    severity: 'warning',
-    user: 'amit.district@eseva.gov.in',
-    userName: 'Amit Sharma',
-    action: 'Unauthorized access attempt',
-    description: 'Attempted to access GRAM level application with DISTRICT privileges',
-    ip: '192.168.1.185',
-    resource: '/api/applications/GRAM001',
-    timestamp: '2026-02-23T07:50:00Z',
-    status: 'denied'
-  },
-
-  // Email/SMS Logs
-  {
-    id: 14,
-    type: 'email',
-    category: 'communication',
-    severity: 'info',
-    user: 'system',
-    userName: null,
-    action: 'Email sent',
-    description: 'Application approval email sent to rajesh.k@example.com',
-    recipient: 'rajesh.k@example.com',
-    template: 'approval-template',
-    timestamp: '2026-02-23T11:15:00Z',
-    status: 'success'
-  },
-  {
-    id: 15,
-    type: 'sms',
-    category: 'communication',
-    severity: 'error',
-    user: 'system',
-    userName: null,
-    action: 'SMS failed',
-    description: 'Failed to send OTP to mobile 9876543210',
-    recipient: '9876543210',
-    provider: 'MSG91',
-    error: 'Invalid mobile number',
-    timestamp: '2026-02-23T10:45:00Z',
-    status: 'failed'
-  },
-
-  // User Activity Logs
-  {
-    id: 16,
-    type: 'user',
-    category: 'activity',
-    severity: 'info',
-    user: 'admin@eseva.gov.in',
-    userName: 'System Admin',
-    action: 'User created',
-    description: 'Created new user: Ramesh Kumar (GRAM_SEVAK)',
-    targetUser: 'ramesh.gram@eseva.gov.in',
-    role: 'GRAM_SEVAK',
-    timestamp: '2026-02-23T10:00:00Z',
-    status: 'success'
-  },
-  {
-    id: 17,
-    type: 'user',
-    category: 'activity',
-    severity: 'info',
-    user: 'admin@eseva.gov.in',
-    userName: 'System Admin',
-    action: 'Password reset',
-    description: 'Reset password for user: Priya Singh',
-    targetUser: 'priya.tehsil@eseva.gov.in',
-    timestamp: '2026-02-23T09:30:00Z',
-    status: 'success'
-  },
-
-  // Backup Logs
-  {
-    id: 18,
-    type: 'backup',
-    category: 'system',
-    severity: 'success',
-    user: 'system',
-    userName: null,
-    action: 'Manual backup',
-    description: 'Manual backup of entire system completed',
-    size: '2.8 GB',
-    duration: '3 minutes',
-    location: '/backups/manual/2026-02-23',
-    timestamp: '2026-02-23T02:00:00Z',
-    status: 'success'
-  },
-
-  // Error Logs
-  {
-    id: 19,
-    type: 'error',
-    category: 'system',
-    severity: 'critical',
-    user: 'system',
-    userName: null,
-    action: 'Unhandled exception',
-    description: 'NullReferenceException in ApplicationService.Process()',
-    stackTrace: 'at ApplicationService.Process(String id) line 45',
-    component: 'ApplicationService',
-    timestamp: '2026-02-23T01:30:00Z',
-    status: 'error'
-  }
-];
+import { useClearLogsMutation, useGetLogsQuery } from '../../../features/api/adminApi';
 
 // Log types for filtering
 const logTypes = [
@@ -398,72 +88,117 @@ const getStatusColor = (status) => {
 };
 
 const SystemLogs = () => {
-  const [logs, setLogs] = useState(mockSystemLogs);
+  // Filter states
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedType, setSelectedType] = useState('all');
   const [selectedSeverity, setSelectedSeverity] = useState('all');
-  const [dateRange, setDateRange] = useState('today');
+  const [selectedStatus, setSelectedStatus] = useState('all');
+  const [dateRange, setDateRange] = useState('all');
   const [autoRefresh, setAutoRefresh] = useState(false);
+  
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(20);
+  
+  // UI states
   const [expandedLog, setExpandedLog] = useState(null);
   const [selectedLog, setSelectedLog] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
-  const [logStats, setLogStats] = useState({
-    total: mockSystemLogs.length,
-    errors: mockSystemLogs.filter(l => ['error', 'critical'].includes(l.severity)).length,
-    warnings: mockSystemLogs.filter(l => l.severity === 'warning').length,
-    logins: mockSystemLogs.filter(l => l.type === 'login').length,
-    failedLogins: mockSystemLogs.filter(l => l.type === 'login' && l.status === 'failed').length,
-    apiCalls: mockSystemLogs.filter(l => l.type === 'api').length
+  
+  const [clearLogsMutation] = useClearLogsMutation();
+
+
+  // Fetch logs from API
+  const {
+    data: logsData,
+    isLoading,
+    isFetching,
+    refetch
+  } = useGetLogsQuery({
+    type: selectedType !== 'all' ? selectedType : undefined,
+    severity: selectedSeverity !== 'all' ? selectedSeverity : undefined,
+    status: selectedStatus !== 'all' ? selectedStatus : undefined,
+    dateRange: dateRange,
+    page: currentPage,
+    limit: itemsPerPage
   });
 
-  // Filter logs
-  const filteredLogs = logs.filter(log => {
-    // Search filter
-    if (searchTerm) {
-      const searchLower = searchTerm.toLowerCase();
-      const matches = 
-        log.user?.toLowerCase().includes(searchLower) ||
-        log.userName?.toLowerCase().includes(searchLower) ||
-        log.action?.toLowerCase().includes(searchLower) ||
-        log.description?.toLowerCase().includes(searchLower) ||
-        log.ip?.includes(searchLower) ||
-        log.applicationId?.includes(searchLower);
-      if (!matches) return false;
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, selectedType, selectedSeverity, selectedStatus, dateRange]);
+
+  // Auto-refresh effect
+  useEffect(() => {
+    let interval;
+    if (autoRefresh) {
+      interval = setInterval(() => {
+        refetch();
+      }, 30000); // 30 seconds
     }
+    return () => clearInterval(interval);
+  }, [autoRefresh, refetch]);
+
+  // Get logs data from API response
+  const logs = logsData?.data || [];
+  const totalLogs = logsData?.total || 0;
+  const totalPages = logsData?.pages || 1;
+
+  // Calculate statistics from logs
+  const logStats = {
+    total: totalLogs,
+    errors: logs.filter(l => ['error', 'critical'].includes(l.severity)).length,
+    warnings: logs.filter(l => l.severity === 'warning').length,
+    logins: logs.filter(l => l.type === 'login').length,
+    failedLogins: logs.filter(l => l.type === 'login' && l.status === 'failed').length,
+    apiCalls: logs.filter(l => l.type === 'api').length
+  };
+
+  // Pagination handlers
+  const goToFirstPage = () => setCurrentPage(1);
+  const goToLastPage = () => setCurrentPage(totalPages);
+  const goToPreviousPage = () => setCurrentPage(prev => Math.max(prev - 1, 1));
+  const goToNextPage = () => setCurrentPage(prev => Math.min(prev + 1, totalPages));
+  const goToPage = (pageNumber) => setCurrentPage(pageNumber);
+
+  // Generate page numbers for pagination
+  const getPageNumbers = () => {
+    const pageNumbers = [];
+    const maxVisiblePages = 5;
     
-    // Type filter
-    if (selectedType !== 'all' && log.type !== selectedType) return false;
-    
-    // Severity filter
-    if (selectedSeverity !== 'all' && log.severity !== selectedSeverity) return false;
-    
-    // Date filter
-    if (dateRange !== 'all') {
-      const logDate = new Date(log.timestamp);
-      const today = new Date();
-      const yesterday = new Date(today);
-      yesterday.setDate(yesterday.getDate() - 1);
-      const weekAgo = new Date(today);
-      weekAgo.setDate(weekAgo.getDate() - 7);
-      
-      switch(dateRange) {
-        case 'today':
-          if (logDate.toDateString() !== today.toDateString()) return false;
-          break;
-        case 'yesterday':
-          if (logDate.toDateString() !== yesterday.toDateString()) return false;
-          break;
-        case 'week':
-          if (logDate < weekAgo) return false;
-          break;
+    if (totalPages <= maxVisiblePages) {
+      for (let i = 1; i <= totalPages; i++) {
+        pageNumbers.push(i);
+      }
+    } else {
+      if (currentPage <= 3) {
+        for (let i = 1; i <= 4; i++) {
+          pageNumbers.push(i);
+        }
+        pageNumbers.push('...');
+        pageNumbers.push(totalPages);
+      } else if (currentPage >= totalPages - 2) {
+        pageNumbers.push(1);
+        pageNumbers.push('...');
+        for (let i = totalPages - 3; i <= totalPages; i++) {
+          pageNumbers.push(i);
+        }
+      } else {
+        pageNumbers.push(1);
+        pageNumbers.push('...');
+        for (let i = currentPage - 1; i <= currentPage + 1; i++) {
+          pageNumbers.push(i);
+        }
+        pageNumbers.push('...');
+        pageNumbers.push(totalPages);
       }
     }
     
-    return true;
-  });
+    return pageNumbers;
+  };
 
   // Format date
   const formatDate = (dateString) => {
@@ -519,8 +254,14 @@ const SystemLogs = () => {
 
   // Handle refresh
   const handleRefresh = () => {
+    refetch();
+    showToastMessage('Logs refreshed successfully');
+  };
+
+  // Show toast message
+  const showToastMessage = (message) => {
     setShowSuccess(true);
-    setSuccessMessage('Logs refreshed successfully');
+    setSuccessMessage(message);
     setTimeout(() => setShowSuccess(false), 3000);
   };
 
@@ -528,7 +269,7 @@ const SystemLogs = () => {
   const handleExport = () => {
     const csvContent = "data:text/csv;charset=utf-8," 
       + "Timestamp,Type,Severity,User,Action,Description,IP,Status\n"
-      + filteredLogs.map(log => 
+      + logs.map(log => 
         `${log.timestamp},${log.type},${log.severity},${log.user},${log.action},${log.description},${log.ip},${log.status}`
       ).join("\n");
     
@@ -539,19 +280,26 @@ const SystemLogs = () => {
     document.body.appendChild(link);
     link.click();
     
-    setShowSuccess(true);
-    setSuccessMessage('Logs exported successfully');
-    setTimeout(() => setShowSuccess(false), 3000);
+    showToastMessage('Logs exported successfully');
   };
 
-  // Handle clear logs
-  const handleClearLogs = () => {
+  // Handle clear logs (you'll need to implement this mutation)
+  const handleClearLogs = async () => {
+  try {
     setShowClearConfirm(false);
-    setLogs([]);
-    setShowSuccess(true);
-    setSuccessMessage('Logs cleared successfully');
-    setTimeout(() => setShowSuccess(false), 3000);
-  };
+
+    await clearLogsMutation({
+      type: selectedType,
+      severity: selectedSeverity
+    }).unwrap();
+
+    showToastMessage('Logs cleared successfully');
+    refetch();
+
+  } catch (error) {
+    showToastMessage('Failed to clear logs');
+  }
+};
 
   return (
     <div className="space-y-6">
@@ -567,6 +315,16 @@ const SystemLogs = () => {
         </div>
       )}
 
+      {/* Loading Overlay */}
+      {(isLoading || isFetching) && (
+        <div className="fixed inset-0 bg-black bg-opacity-20 flex items-center justify-center z-40">
+          <div className="bg-white rounded-lg p-4 shadow-xl flex items-center space-x-3">
+            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+            <span className="text-sm text-gray-700">Loading logs...</span>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
@@ -576,10 +334,11 @@ const SystemLogs = () => {
         <div className="flex space-x-3">
           <button
             onClick={handleRefresh}
-            className="flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            disabled={isFetching}
+            className="flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
           >
-            <RefreshCw className="w-4 h-4 mr-2" />
-            Refresh
+            <RefreshCw className={`w-4 h-4 mr-2 ${isFetching ? 'animate-spin' : ''}`} />
+            {isFetching ? 'Refreshing...' : 'Refresh'}
           </button>
           <button
             onClick={handleExport}
@@ -710,23 +469,47 @@ const SystemLogs = () => {
           </select>
 
           <select
+            value={selectedStatus}
+            onChange={(e) => setSelectedStatus(e.target.value)}
+            className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          >
+            <option value="all">All Status</option>
+            <option value="success">Success</option>
+            <option value="failed">Failed</option>
+            <option value="error">Error</option>
+            <option value="warning">Warning</option>
+            <option value="blocked">Blocked</option>
+            <option value="denied">Denied</option>
+          </select>
+
+          <select
             value={dateRange}
             onChange={(e) => setDateRange(e.target.value)}
             className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
+            <option value="all">All Time</option>
             <option value="today">Today</option>
             <option value="yesterday">Yesterday</option>
             <option value="week">Last 7 Days</option>
-            <option value="all">All Time</option>
+            <option value="month">Last 30 Days</option>
           </select>
 
-          <button className="px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors flex items-center">
+          <button
+            onClick={() => {
+              setSearchTerm('');
+              setSelectedType('all');
+              setSelectedSeverity('all');
+              setSelectedStatus('all');
+              setDateRange('all');
+            }}
+            className="px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors flex items-center"
+          >
             <Filter className="w-4 h-4 mr-2" />
-            More Filters
+            Clear Filters
           </button>
         </div>
 
-        {/* Auto-refresh toggle */}
+        {/* Auto-refresh toggle and results count */}
         <div className="mt-3 flex items-center justify-between">
           <label className="flex items-center space-x-2">
             <input
@@ -738,27 +521,32 @@ const SystemLogs = () => {
             <span className="text-sm text-gray-600">Auto-refresh every 30 seconds</span>
           </label>
           <span className="text-xs text-gray-500">
-            Showing {filteredLogs.length} of {logs.length} logs
+            Showing {logs.length} of {totalLogs} logs
           </span>
         </div>
       </div>
 
       {/* Logs Timeline */}
       <div className="space-y-3">
-        {filteredLogs.length > 0 ? (
-          filteredLogs.map(log => {
+        {isLoading ? (
+          <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="text-gray-500 mt-4">Loading logs...</p>
+          </div>
+        ) : logs.length > 0 ? (
+          logs.map(log => {
             const Icon = getLogIcon(log.type);
             const severityColor = getSeverityColor(log.severity);
             
             return (
               <div
-                key={log.id}
+                key={log._id || log.id}
                 className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow"
               >
                 {/* Log Header */}
                 <div
                   className="p-4 cursor-pointer hover:bg-gray-50"
-                  onClick={() => setExpandedLog(expandedLog === log.id ? null : log.id)}
+                  onClick={() => setExpandedLog(expandedLog === (log._id || log.id) ? null : (log._id || log.id))}
                 >
                   <div className="flex items-start">
                     <div className={`p-2 rounded-lg ${severityColor} mr-3`}>
@@ -816,7 +604,7 @@ const SystemLogs = () => {
                     </div>
                     
                     <button className="ml-2 p-1 hover:bg-gray-200 rounded">
-                      {expandedLog === log.id ? (
+                      {expandedLog === (log._id || log.id) ? (
                         <ChevronDown className="w-4 h-4 text-gray-500" />
                       ) : (
                         <ChevronRight className="w-4 h-4 text-gray-500" />
@@ -826,7 +614,7 @@ const SystemLogs = () => {
                 </div>
 
                 {/* Expanded Details */}
-                {expandedLog === log.id && (
+                {expandedLog === (log._id || log.id) && (
                   <div className="px-4 pb-4 border-t border-gray-200">
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
                       {/* User Info */}
@@ -987,9 +775,7 @@ const SystemLogs = () => {
                       <button
                         onClick={() => {
                           navigator.clipboard.writeText(JSON.stringify(log, null, 2));
-                          setShowSuccess(true);
-                          setSuccessMessage('Copied to clipboard');
-                          setTimeout(() => setShowSuccess(false), 2000);
+                          showToastMessage('Copied to clipboard');
                         }}
                         className="p-1 hover:bg-gray-100 rounded"
                         title="Copy to Clipboard"
@@ -1012,7 +798,8 @@ const SystemLogs = () => {
                 setSearchTerm('');
                 setSelectedType('all');
                 setSelectedSeverity('all');
-                setDateRange('today');
+                setSelectedStatus('all');
+                setDateRange('all');
               }}
               className="text-blue-600 hover:text-blue-800 font-medium"
             >
@@ -1022,12 +809,118 @@ const SystemLogs = () => {
         )}
       </div>
 
-      {/* Load More */}
-      {filteredLogs.length > 0 && (
-        <div className="text-center">
-          <button className="px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-800">
-            Load More Logs
-          </button>
+      {/* Pagination */}
+      {!isLoading && totalPages > 1 && (
+        <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6 rounded-lg">
+          <div className="flex flex-1 justify-between sm:hidden">
+            <button
+              onClick={goToPreviousPage}
+              disabled={currentPage === 1}
+              className={`relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium ${
+                currentPage === 1
+                  ? 'text-gray-300 cursor-not-allowed'
+                  : 'text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              Previous
+            </button>
+            <button
+              onClick={goToNextPage}
+              disabled={currentPage === totalPages}
+              className={`relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium ${
+                currentPage === totalPages
+                  ? 'text-gray-300 cursor-not-allowed'
+                  : 'text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              Next
+            </button>
+          </div>
+          <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm text-gray-700">
+                Showing <span className="font-medium">{(currentPage - 1) * itemsPerPage + 1}</span> to{' '}
+                <span className="font-medium">{Math.min(currentPage * itemsPerPage, totalLogs)}</span> of{' '}
+                <span className="font-medium">{totalLogs}</span> results
+              </p>
+            </div>
+            <div>
+              <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+                <button
+                  onClick={goToFirstPage}
+                  disabled={currentPage === 1}
+                  className={`relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 focus:z-20 focus:outline-offset-0 ${
+                    currentPage === 1
+                      ? 'cursor-not-allowed'
+                      : 'hover:bg-gray-50 focus:outline-none'
+                  }`}
+                >
+                  <span className="sr-only">First</span>
+                  <ChevronsLeft className="h-5 w-5" aria-hidden="true" />
+                </button>
+                <button
+                  onClick={goToPreviousPage}
+                  disabled={currentPage === 1}
+                  className={`relative inline-flex items-center px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 focus:z-20 focus:outline-offset-0 ${
+                    currentPage === 1
+                      ? 'cursor-not-allowed'
+                      : 'hover:bg-gray-50 focus:outline-none'
+                  }`}
+                >
+                  <span className="sr-only">Previous</span>
+                  <ChevronLeft className="h-5 w-5" aria-hidden="true" />
+                </button>
+                
+                {getPageNumbers().map((page, index) => (
+                  page === '...' ? (
+                    <span
+                      key={`ellipsis-${index}`}
+                      className="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-700 ring-1 ring-inset ring-gray-300 focus:outline-offset-0"
+                    >
+                      ...
+                    </span>
+                  ) : (
+                    <button
+                      key={page}
+                      onClick={() => goToPage(page)}
+                      className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold ${
+                        currentPage === page
+                          ? 'z-10 bg-blue-600 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600'
+                          : 'text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:outline-offset-0'
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  )
+                ))}
+                
+                <button
+                  onClick={goToNextPage}
+                  disabled={currentPage === totalPages}
+                  className={`relative inline-flex items-center px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 focus:z-20 focus:outline-offset-0 ${
+                    currentPage === totalPages
+                      ? 'cursor-not-allowed'
+                      : 'hover:bg-gray-50 focus:outline-none'
+                  }`}
+                >
+                  <span className="sr-only">Next</span>
+                  <ChevronRightPaginate className="h-5 w-5" aria-hidden="true" />
+                </button>
+                <button
+                  onClick={goToLastPage}
+                  disabled={currentPage === totalPages}
+                  className={`relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 focus:z-20 focus:outline-offset-0 ${
+                    currentPage === totalPages
+                      ? 'cursor-not-allowed'
+                      : 'hover:bg-gray-50 focus:outline-none'
+                  }`}
+                >
+                  <span className="sr-only">Last</span>
+                  <ChevronsRight className="h-5 w-5" aria-hidden="true" />
+                </button>
+              </nav>
+            </div>
+          </div>
         </div>
       )}
 
@@ -1038,7 +931,7 @@ const SystemLogs = () => {
             <div className="p-6 border-b border-gray-200 flex justify-between items-start">
               <div>
                 <h2 className="text-xl font-bold text-gray-900">Log Details</h2>
-                <p className="text-sm text-gray-500 mt-1">ID: {selectedLog.id}</p>
+                <p className="text-sm text-gray-500 mt-1">ID: {selectedLog._id || selectedLog.id}</p>
               </div>
               <button
                 onClick={() => setShowDetailModal(false)}
@@ -1096,9 +989,7 @@ const SystemLogs = () => {
                 <button
                   onClick={() => {
                     navigator.clipboard.writeText(JSON.stringify(selectedLog, null, 2));
-                    setShowSuccess(true);
-                    setSuccessMessage('Copied to clipboard');
-                    setTimeout(() => setShowSuccess(false), 2000);
+                    showToastMessage('Copied to clipboard');
                   }}
                   className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
                 >
