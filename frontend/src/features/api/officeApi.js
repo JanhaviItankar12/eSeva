@@ -2,8 +2,10 @@ import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
 export const officeApi = createApi({
   reducerPath: "officeApi",
+
   baseQuery: fetchBaseQuery({
     baseUrl: "http://localhost:8080/api/",
+    credentials: 'include',
     prepareHeaders: (headers, { getState }) => {
       const token = getState().auth.token || localStorage.getItem("token");
 

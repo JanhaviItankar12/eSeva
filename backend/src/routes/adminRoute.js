@@ -9,7 +9,8 @@ import { activateOffice, createOffice, deActivateOffice, updateOffice } from "..
 import { allCertificate, certificateById, createCertificate, toggleCertificateStatus, updateCertificate } from "../Controllers/Admin/certificateController.js";
 import { getSystemSettings, updateSystemSetting } from "../Controllers/Admin/globalSettingController.js";
 import { clearLogs, getAllLogs } from "../Controllers/Admin/logController.js";
-import { createBackup, createSchedule, deleteBackup, deleteSchedule, getBackupHistory, getBackupSettingData, getSchedules, getStorageInfo, restoreBackup, toggleSchedule, updateBackupSettings, updateSchedule } from "../Controllers/Admin/BackupAndRestore.js";
+import { cleanupStorage, createBackup, createSchedule, deleteBackup, deleteSchedule, downloadBackup, getBackupHistory, getBackupSettingData, getSchedules, getStorageInfo,  restoreBackup, toggleSchedule, updateBackupSettings, updateSchedule } from "../Controllers/Admin/BackupAndRestore.js";
+import { createExportTemplate, deleteExport, deleteExportTemplate, downloadExport, exportData, getExportHistory, getExportPreview, getExportTemplates } from "../Controllers/Admin/exportController.js";
 
 const router=express.Router();
 
@@ -64,8 +65,11 @@ router.delete("/logs",protect,authorizeRoles("ADMIN"), clearLogs);
 //backup
 router.get("/backups",protect,authorizeRoles("ADMIN"), getBackupHistory);
 router.post("/backups",protect,authorizeRoles("ADMIN"), createBackup);
+router.get("/backups/:id/download", protect,authorizeRoles("ADMIN"), downloadBackup);
 router.get("/schedules",protect,authorizeRoles("ADMIN"), getSchedules);
 router.get("/storage", protect,authorizeRoles("ADMIN"),getStorageInfo);
+router.delete("/storage/cleanup",protect,authorizeRoles("ADMIN"),cleanupStorage);
+
 router.post("/backups/:id/restore",protect,authorizeRoles("ADMIN"), restoreBackup);
 router.delete("/backups/:id",protect,authorizeRoles("ADMIN"), deleteBackup);
 
@@ -75,9 +79,20 @@ router.put("/schedules/:id",protect,authorizeRoles("ADMIN"), updateSchedule);
 router.delete("/schedules/:id",protect,authorizeRoles("ADMIN"), deleteSchedule);
 router.patch("/schedules/:id/toggle",protect,authorizeRoles("ADMIN"), toggleSchedule);
 
-// Settings
+// Settings-backup
 router.put("/settings/backup", protect,authorizeRoles("ADMIN"),updateBackupSettings);
 router.get("/settings/backup",protect,authorizeRoles("ADMIN"),getBackupSettingData);
+
+
+router.post("/exports",protect,authorizeRoles("ADMIN"), exportData);
+router.get("/exports",protect,authorizeRoles("ADMIN"), getExportHistory);
+router.delete("/exports/:id",protect,authorizeRoles("ADMIN"), deleteExport);
+router.get("/exports/:id/download",protect,authorizeRoles("ADMIN") ,downloadExport);
+router.get("/exports/:id/preview",protect,authorizeRoles("ADMIN"), getExportPreview);
+
+router.post("/export-templates",protect,authorizeRoles("ADMIN"), createExportTemplate);
+router.get("/export-templates",protect,authorizeRoles("ADMIN"), getExportTemplates);
+router.delete("/export-templates/:id",protect,authorizeRoles("ADMIN"), deleteExportTemplate);
 
 
 export default router;

@@ -5,7 +5,7 @@ const backupSchema = new mongoose.Schema({
   type: { type: String, enum: ["auto", "manual"] },
   status: { type: String, enum: ["success", "failed", "warning"] },
 
-  size: String,
+  size: Number,
   duration: String,
   location: String,
 

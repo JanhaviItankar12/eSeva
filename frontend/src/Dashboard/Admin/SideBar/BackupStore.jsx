@@ -38,7 +38,11 @@ import {
   Building2,
   Layers,
   Edit3,
-  XCircle as XCircleIcon
+  XCircle as XCircleIcon,
+  ChevronLeft,
+  ChevronsLeft,
+  ChevronRight as ChevronRightIcon,
+  ChevronsRight
 } from 'lucide-react';
 import { 
   useCreateBackupMutation, 
@@ -52,7 +56,9 @@ import {
   useDeleteScheduleMutation,
   useToggleScheduleMutation,
   useUpdateBackupSettingsMutation,
-  useGetBackupSettingsQuery
+  useGetBackupSettingsQuery,
+  useDownloadBackupMutation,
+  useCleanupStorageMutation,
 } from '../../../features/api/adminApi';
 
 // Helper function to format bytes to human readable
@@ -102,16 +108,195 @@ const getStatusColor = (status) => {
   return colors[status] || 'bg-gray-100 text-gray-800';
 };
 
+// Loading Skeleton Component
+const LoadingSkeleton = ({ type = 'backups' }) => {
+  if (type === 'backups') {
+    return (
+      <div className="space-y-4">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="bg-white rounded-xl border border-gray-200 p-4 animate-pulse">
+            <div className="flex items-start justify-between">
+              <div className="flex items-start space-x-4 flex-1">
+                <div className="w-10 h-10 bg-gray-200 rounded-lg"></div>
+                <div className="flex-1">
+                  <div className="h-5 bg-gray-200 rounded w-48 mb-2"></div>
+                  <div className="h-4 bg-gray-200 rounded w-64 mb-2"></div>
+                  <div className="flex space-x-4">
+                    <div className="h-3 bg-gray-200 rounded w-16"></div>
+                    <div className="h-3 bg-gray-200 rounded w-16"></div>
+                    <div className="h-3 bg-gray-200 rounded w-24"></div>
+                  </div>
+                </div>
+              </div>
+              <div className="w-6 h-6 bg-gray-200 rounded"></div>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (type === 'schedules') {
+    return (
+      <div className="space-y-4">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="bg-white rounded-xl border border-gray-200 p-6 animate-pulse">
+            <div className="flex items-start justify-between">
+              <div className="flex items-start space-x-4 flex-1">
+                <div className="w-10 h-10 bg-gray-200 rounded-lg"></div>
+                <div className="flex-1">
+                  <div className="h-5 bg-gray-200 rounded w-40 mb-3"></div>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <div className="h-3 bg-gray-200 rounded w-16 mb-1"></div>
+                      <div className="h-4 bg-gray-200 rounded w-24"></div>
+                    </div>
+                    <div>
+                      <div className="h-3 bg-gray-200 rounded w-16 mb-1"></div>
+                      <div className="h-4 bg-gray-200 rounded w-20"></div>
+                    </div>
+                    <div>
+                      <div className="h-3 bg-gray-200 rounded w-16 mb-1"></div>
+                      <div className="h-4 bg-gray-200 rounded w-20"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="flex space-x-2">
+                <div className="w-8 h-8 bg-gray-200 rounded-lg"></div>
+                <div className="w-8 h-8 bg-gray-200 rounded-lg"></div>
+                <div className="w-8 h-8 bg-gray-200 rounded-lg"></div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (type === 'storage') {
+    return (
+      <div className="space-y-6">
+        <div className="bg-white rounded-xl border border-gray-200 p-6 animate-pulse">
+          <div className="h-6 bg-gray-200 rounded w-40 mb-4"></div>
+          <div className="grid grid-cols-3 gap-6 mb-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i}>
+                <div className="h-3 bg-gray-200 rounded w-20 mb-2"></div>
+                <div className="h-8 bg-gray-200 rounded w-32"></div>
+              </div>
+            ))}
+          </div>
+          <div className="mt-4">
+            <div className="flex justify-between mb-1">
+              <div className="h-3 bg-gray-200 rounded w-16"></div>
+              <div className="h-3 bg-gray-200 rounded w-12"></div>
+            </div>
+            <div className="h-2 bg-gray-200 rounded-full w-full"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return null;
+};
+
+// Pagination Component
+const Pagination = ({ currentPage, totalPages, onPageChange, itemsPerPage, onItemsPerPageChange }) => {
+  const pageNumbers = [];
+  const maxVisiblePages = 5;
+  
+  let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+  let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+  
+  if (endPage - startPage + 1 < maxVisiblePages) {
+    startPage = Math.max(1, endPage - maxVisiblePages + 1);
+  }
+  
+  for (let i = startPage; i <= endPage; i++) {
+    pageNumbers.push(i);
+  }
+
+  return (
+    <div className="flex items-center justify-between mt-4">
+      <div className="flex items-center space-x-2">
+        <span className="text-sm text-gray-700">Show</span>
+        <select
+          value={itemsPerPage}
+          onChange={(e) => onItemsPerPageChange(Number(e.target.value))}
+          className="px-2 py-1 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        >
+          <option value={3}>3</option>
+          <option value={5}>5</option>
+          <option value={10}>10</option>
+          <option value={20}>20</option>
+          <option value={50}>50</option>
+        </select>
+        <span className="text-sm text-gray-700">entries</span>
+      </div>
+      
+      <div className="flex items-center space-x-2">
+        <button
+          onClick={() => onPageChange(1)}
+          disabled={currentPage === 1}
+          className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <ChevronsLeft className="w-4 h-4" />
+        </button>
+        <button
+          onClick={() => onPageChange(currentPage - 1)}
+          disabled={currentPage === 1}
+          className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <ChevronLeft className="w-4 h-4" />
+        </button>
+        
+        {pageNumbers.map(number => (
+          <button
+            key={number}
+            onClick={() => onPageChange(number)}
+            className={`px-3 py-1 text-sm rounded-lg ${
+              currentPage === number
+                ? 'bg-blue-600 text-white'
+                : 'text-gray-700 hover:bg-gray-100'
+            }`}
+          >
+            {number}
+          </button>
+        ))}
+        
+        <button
+          onClick={() => onPageChange(currentPage + 1)}
+          disabled={currentPage === totalPages}
+          className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <ChevronRightIcon className="w-4 h-4" />
+        </button>
+        <button
+          onClick={() => onPageChange(totalPages)}
+          disabled={currentPage === totalPages}
+          className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <ChevronsRight className="w-4 h-4" />
+        </button>
+      </div>
+    </div>
+  );
+};
+
 const BackupRestorePage = () => {
   // API Hooks
   const [createBackup, { isLoading: isCreatingBackup }] = useCreateBackupMutation();
   const [restoreBackup, { isLoading: isRestoringBackup }] = useRestoreBackupMutation();
   const [deleteBackup, { isLoading: isDeletingBackup }] = useDeleteBackupMutation();
+  const [downloadBackup, { isLoading: isDownloading }] = useDownloadBackupMutation();
   const [createSchedule, { isLoading: isCreatingSchedule }] = useCreateScheduleMutation();
   const [updateSchedule, { isLoading: isUpdatingSchedule }] = useUpdateScheduleMutation();
   const [deleteSchedule, { isLoading: isDeletingSchedule }] = useDeleteScheduleMutation();
   const [toggleSchedule, { isLoading: isTogglingSchedule }] = useToggleScheduleMutation();
   const [updateSettings, { isLoading: isUpdatingSettings }] = useUpdateBackupSettingsMutation();
+  const [cleanupStorage,{isLoading:cleanupLoading}]=useCleanupStorageMutation();
 
   // Queries
   const { 
@@ -132,15 +317,13 @@ const BackupRestorePage = () => {
     refetch: refetchStorage 
   } = useGetStorageQuery();
 
-   const { 
+  const { 
     data: backupSettingData, 
     isLoading: isLoadingbackupSetting, 
     refetch: refetchBackup 
   } = useGetBackupSettingsQuery();
 
-  const BackupSettingData=backupSettingData?.backupSettingData;
-  
-
+  const BackupSettingData = backupSettingData?.backupSettingData;
 
   // Local state
   const [backups, setBackups] = useState([]);
@@ -163,43 +346,67 @@ const BackupRestorePage = () => {
   const [successMessage, setSuccessMessage] = useState('');
   const [backupProgress, setBackupProgress] = useState(0);
   const [restoreProgress, setRestoreProgress] = useState(0);
+  
+  // Pagination state
+  const [backupPage, setBackupPage] = useState(1);
+  const [backupItemsPerPage, setBackupItemsPerPage] = useState(3);
+  const [schedulePage, setSchedulePage] = useState(1);
+  const [scheduleItemsPerPage, setScheduleItemsPerPage] = useState(3);
+  
   const [settings, setSettings] = useState({
-  defaultLocation: '',
-  backupRetention: '',
-  maxBackupSize: 100,
-  compressionLevel: 'balanced',
-  encryption: true,
-  verifyIntegrity: true,
-  emailNotification: true,
-  createRestorePoint: true,
-  verifyAfterRestore: true,
-  maintainDuringRestore: true,
-  rto: '4',
-  rpo: '4'
-});
+    defaultLocation: '',
+    backupRetention: '',
+    maxBackupSize: 100,
+    compressionLevel: 'balanced',
+    encryption: true,
+    verifyIntegrity: true,
+    emailNotification: true,
+    createRestorePoint: true,
+    verifyAfterRestore: true,
+    maintainDuringRestore: true,
+    rto: '4',
+    rpo: '4'
+  });
 
-useEffect(() => {
-  if (BackupSettingData) {
-    setSettings({
-      defaultLocation: BackupSettingData.defaultBackupLocation || '/backups',
-      backupRetention: BackupSettingData.backupRetention || 7,
-      maxBackupSize: BackupSettingData.maxBackupSize || 100,
-      compressionLevel: BackupSettingData.compressionLevel || 'balanced',
-      encryption: BackupSettingData.enableCompression ?? true,
-      verifyIntegrity: BackupSettingData.verifyIntegrity ?? true,
-      emailNotification: BackupSettingData.enableEmailNotifications ?? true,
-      createRestorePoint: BackupSettingData.createRestorePoint ?? true,
-      verifyAfterRestore: BackupSettingData.verifyAfterRestore ?? true,
-      maintainDuringRestore: BackupSettingData.maintainDuringRestore ?? true,
-      rto: BackupSettingData.rto || '4',
-      rpo: BackupSettingData.rpo || '4'
-    });
-  }
-}, [BackupSettingData]);
+  // State for checking old backups and logs
+  const [hasOldBackups, setHasOldBackups] = useState(false);
+  const [hasOldLogs, setHasOldLogs] = useState(false);
+
+  // Get unique types and statuses from actual data
+  const backupTypes = [...new Set(backups.map(b => b.type).filter(Boolean))];
+  const backupStatuses = [...new Set(backups.map(b => b.status).filter(Boolean))];
+
+  useEffect(() => {
+    if (BackupSettingData) {
+      setSettings({
+        defaultLocation: BackupSettingData.defaultBackupLocation || '/backups',
+        backupRetention: BackupSettingData.backupRetention || 7,
+        maxBackupSize: BackupSettingData.maxBackupSize || 100,
+        compressionLevel: BackupSettingData.compressionLevel || 'balanced',
+        encryption: BackupSettingData.enableCompression ?? true,
+        verifyIntegrity: BackupSettingData.verifyIntegrity ?? true,
+        emailNotification: BackupSettingData.enableEmailNotifications ?? true,
+        createRestorePoint: BackupSettingData.createRestorePoint ?? true,
+        verifyAfterRestore: BackupSettingData.verifyAfterRestore ?? true,
+        maintainDuringRestore: BackupSettingData.maintainDuringRestore ?? true,
+        rto: BackupSettingData.rto || '4',
+        rpo: BackupSettingData.rpo || '4'
+      });
+    }
+  }, [BackupSettingData]);
+
   // Update local state when API data changes
   useEffect(() => {
     if (backupsData?.data) {
       setBackups(backupsData.data);
+      // Check for backups older than 90 days
+      const ninetyDaysAgo = new Date();
+      ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+      
+      const oldBackupsExist = backupsData.data.some(backup => 
+        new Date(backup.timestamp) < ninetyDaysAgo
+      );
+      setHasOldBackups(oldBackupsExist);
     }
   }, [backupsData]);
 
@@ -211,10 +418,21 @@ useEffect(() => {
 
   useEffect(() => {
     if (storageData) {
-      setStorage(storageData.storage);
+      setStorage(storageData.data);
       setDatabaseSizes(storageData.databases || []);
       if (storageData.settings) {
         setSettings(prev => ({ ...prev, ...storageData.settings }));
+      }
+      
+      // Check for logs older than 30 days
+      if (storageData.logs) {
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        
+        const oldLogsExist = storageData.logs.some(log => 
+          new Date(log.timestamp) < thirtyDaysAgo
+        );
+        setHasOldLogs(oldLogsExist);
       }
     }
   }, [storageData]);
@@ -225,7 +443,7 @@ useEffect(() => {
       const searchLower = searchTerm.toLowerCase();
       const matches = 
         backup.name?.toLowerCase().includes(searchLower) ||
-        backup.id?.toLowerCase().includes(searchLower) ||
+        backup._id?.toLowerCase().includes(searchLower) ||
         backup.createdBy?.toLowerCase().includes(searchLower);
       if (!matches) return false;
     }
@@ -234,12 +452,30 @@ useEffect(() => {
     return true;
   });
 
+  // Paginate backups
+  const totalBackupPages = Math.ceil(filteredBackups.length / backupItemsPerPage);
+  const paginatedBackups = filteredBackups.slice(
+    (backupPage - 1) * backupItemsPerPage,
+    backupPage * backupItemsPerPage
+  );
+
+  // Paginate schedules
+  const totalSchedulePages = Math.ceil(schedules.length / scheduleItemsPerPage);
+  const paginatedSchedules = schedules.slice(
+    (schedulePage - 1) * scheduleItemsPerPage,
+    schedulePage * scheduleItemsPerPage
+  );
+
+  // Reset page when filters change
+  useEffect(() => {
+    setBackupPage(1);
+  }, [searchTerm, selectedType, selectedStatus]);
+
   // Handle manual backup
   const handleManualBackup = async () => {
     try {
       setBackupProgress(0);
       
-      // Simulate progress (you can remove this if your API provides progress)
       const progressInterval = setInterval(() => {
         setBackupProgress(prev => Math.min(prev + 10, 90));
       }, 500);
@@ -279,7 +515,7 @@ useEffect(() => {
         setRestoreProgress(prev => Math.min(prev + 10, 90));
       }, 500);
 
-      await restoreBackup(selectedBackup.id).unwrap();
+      await restoreBackup(selectedBackup._id).unwrap();
 
       clearInterval(progressInterval);
       setRestoreProgress(100);
@@ -298,15 +534,32 @@ useEffect(() => {
   };
 
   // Handle delete backup
-  const handleDeleteBackup = async (backupId) => {
+  const handleDeleteBackup = async (id) => {
     try {
-      await deleteBackup(backupId).unwrap();
+      await deleteBackup(id).unwrap();
       setShowDeleteConfirm(false);
       showToastMessage('Backup deleted successfully');
       refetchBackups();
       refetchStorage();
     } catch (error) {
       showToastMessage(error?.data?.message || 'Failed to delete backup', 'error');
+    }
+  };
+
+  const handleDownloadBackup = async (id) => {
+    try {
+      const blob = await downloadBackup(id).unwrap();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `backup-${Date.now()}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.log(error);
+      showToastMessage("Download failed", "error");
     }
   };
 
@@ -323,12 +576,27 @@ useEffect(() => {
     }
   };
 
+  const handleCleanup = async (type, days) => {
+    try {
+      await cleanupStorage({ type, days }).unwrap();
+      showToastMessage(`${type} cleaned successfully`);
+      refetchStorage();
+      if (type === 'backups') {
+        setHasOldBackups(false);
+      } else if (type === 'logs') {
+        setHasOldLogs(false);
+      }
+    } catch (err) {
+      showToastMessage("Cleanup failed", "error");
+    }
+  };
+
   // Handle update schedule
   const handleUpdateSchedule = async () => {
     try {
       await updateSchedule({
-        id: selectedSchedule.id,
-        ...scheduleForm
+        id: selectedSchedule._id,
+        data: scheduleForm
       }).unwrap();
       setShowScheduleModal(false);
       resetScheduleForm();
@@ -339,16 +607,30 @@ useEffect(() => {
     }
   };
 
-  // Handle toggle schedule
+  // Handle toggle schedule - FIXED VERSION
   const handleToggleSchedule = async (scheduleId, currentStatus) => {
     try {
+      // Optimistically update UI
+      const updatedSchedules = schedules.map(schedule => 
+        schedule._id === scheduleId 
+          ? { ...schedule, status: currentStatus === 'active' ? 'inactive' : 'active' }
+          : schedule
+      );
+      setSchedules(updatedSchedules);
+
+      // Call API
       await toggleSchedule({
         id: scheduleId,
         status: currentStatus === 'active' ? 'inactive' : 'active'
       }).unwrap();
+      
       showToastMessage('Schedule status updated');
+      
+      // Refetch to ensure sync with server
       refetchSchedules();
     } catch (error) {
+      // Revert on error
+      refetchSchedules();
       showToastMessage(error?.data?.message || 'Failed to update schedule', 'error');
     }
   };
@@ -445,16 +727,6 @@ useEffect(() => {
               <CheckCircle className="w-5 h-5 text-green-600 mr-3" />
               <p className="text-sm font-medium text-green-800">{successMessage}</p>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Loading Overlay */}
-      {isLoading && (
-        <div className="fixed inset-0 bg-black bg-opacity-20 flex items-center justify-center z-40">
-          <div className="bg-white rounded-lg p-4 shadow-xl flex items-center space-x-3">
-            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
-            <span className="text-sm text-gray-700">Loading...</span>
           </div>
         </div>
       )}
@@ -561,8 +833,11 @@ useEffect(() => {
                 className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="all">All Types</option>
-                <option value="auto">Automatic</option>
-                <option value="manual">Manual</option>
+                {backupTypes.map(type => (
+                  <option key={type} value={type}>
+                    {type.charAt(0).toUpperCase() + type.slice(1)}
+                  </option>
+                ))}
               </select>
               <select
                 value={selectedStatus}
@@ -570,11 +845,11 @@ useEffect(() => {
                 className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="all">All Status</option>
-                <option value="success">Success</option>
-                <option value="completed">Completed</option>
-                <option value="failed">Failed</option>
-                <option value="warning">Warning</option>
-                <option value="in_progress">In Progress</option>
+                {backupStatuses.map(status => (
+                  <option key={status} value={status}>
+                    {status.charAt(0).toUpperCase() + status.slice(1)}
+                  </option>
+                ))}
               </select>
               <button 
                 onClick={() => {
@@ -593,11 +868,8 @@ useEffect(() => {
           {/* Backup List */}
           <div className="space-y-4">
             {isLoadingBackups ? (
-              <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-                <p className="text-gray-500 mt-4">Loading backups...</p>
-              </div>
-            ) : filteredBackups.length === 0 ? (
+              <LoadingSkeleton type="backups" />
+            ) : paginatedBackups.length === 0 ? (
               <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
                 <Archive className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">No backups found</h3>
@@ -611,12 +883,12 @@ useEffect(() => {
                 </button>
               </div>
             ) : (
-              filteredBackups.map(backup => (
-                <div key={backup.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
+              paginatedBackups.map(backup => (
+                <div key={backup._id} className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
                   {/* Header */}
                   <div
                     className="p-4 cursor-pointer hover:bg-gray-50"
-                    onClick={() => setExpandedBackup(expandedBackup === backup.id ? null : backup.id)}
+                    onClick={() => setExpandedBackup(expandedBackup === backup._id ? null : backup._id)}
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex items-start space-x-4">
@@ -645,7 +917,7 @@ useEffect(() => {
                               {backup.status}
                             </span>
                           </div>
-                          <p className="text-sm text-gray-600 mt-1">ID: {backup.id}</p>
+                          <p className="text-sm text-gray-600 mt-1">ID: {backup._id}</p>
                           <div className="flex items-center space-x-4 mt-2">
                             <span className="text-xs text-gray-500 flex items-center">
                               <HardDrive className="w-3 h-3 mr-1" />
@@ -663,7 +935,7 @@ useEffect(() => {
                         </div>
                       </div>
                       <button className="p-1 hover:bg-gray-200 rounded">
-                        {expandedBackup === backup.id ? (
+                        {expandedBackup === backup._id ? (
                           <ChevronDown className="w-5 h-5 text-gray-500" />
                         ) : (
                           <ChevronRight className="w-5 h-5 text-gray-500" />
@@ -673,7 +945,7 @@ useEffect(() => {
                   </div>
 
                   {/* Expanded Details */}
-                  {expandedBackup === backup.id && (
+                  {expandedBackup === backup._id && (
                     <div className="px-4 pb-4 border-t border-gray-200">
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
                         <div>
@@ -760,7 +1032,7 @@ useEffect(() => {
                         <button 
                           className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
                           onClick={() => {
-                            // Handle download
+                             handleDownloadBackup(backup._id)
                           }}
                         >
                           <Download className="w-4 h-4 inline mr-1" />
@@ -784,6 +1056,17 @@ useEffect(() => {
               ))
             )}
           </div>
+
+          {/* Pagination for Backups */}
+          {filteredBackups.length > 0 && (
+            <Pagination
+              currentPage={backupPage}
+              totalPages={totalBackupPages}
+              onPageChange={setBackupPage}
+              itemsPerPage={backupItemsPerPage}
+              onItemsPerPageChange={setBackupItemsPerPage}
+            />
+          )}
         </>
       )}
 
@@ -791,10 +1074,7 @@ useEffect(() => {
       {activeTab === 'schedules' && (
         <div className="space-y-4">
           {isLoadingSchedules ? (
-            <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-              <p className="text-gray-500 mt-4">Loading schedules...</p>
-            </div>
+            <LoadingSkeleton type="schedules" />
           ) : schedules.length === 0 ? (
             <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
               <Clock className="w-16 h-16 text-gray-300 mx-auto mb-4" />
@@ -812,8 +1092,8 @@ useEffect(() => {
               </button>
             </div>
           ) : (
-            schedules.map(schedule => (
-              <div key={schedule.id} className="bg-white rounded-xl border border-gray-200 p-6">
+            paginatedSchedules.map(schedule => (
+              <div key={schedule._id} className="bg-white rounded-xl border border-gray-200 p-6">
                 <div className="flex items-start justify-between">
                   <div className="flex items-start space-x-4">
                     <div className={`p-2 rounded-lg ${schedule.status === 'active' ? 'bg-green-100' : 'bg-gray-100'}`}>
@@ -871,7 +1151,7 @@ useEffect(() => {
                   </div>
                   <div className="flex space-x-2">
                     <button
-                      onClick={() => handleToggleSchedule(schedule.id, schedule.status)}
+                      onClick={() => handleToggleSchedule(schedule._id, schedule.status)}
                       disabled={isTogglingSchedule}
                       className={`p-2 rounded-lg transition-colors ${
                         schedule.status === 'active' 
@@ -892,7 +1172,7 @@ useEffect(() => {
                       <Edit3 className="w-4 h-4 text-gray-500" />
                     </button>
                     <button
-                      onClick={() => handleDeleteSchedule(schedule.id)}
+                      onClick={() => handleDeleteSchedule(schedule._id)}
                       disabled={isDeletingSchedule}
                       className="p-2 hover:bg-red-100 rounded-lg disabled:opacity-50"
                     >
@@ -903,6 +1183,17 @@ useEffect(() => {
               </div>
             ))
           )}
+
+          {/* Pagination for Schedules */}
+          {schedules.length > 0 && (
+            <Pagination
+              currentPage={schedulePage}
+              totalPages={totalSchedulePages}
+              onPageChange={setSchedulePage}
+              itemsPerPage={scheduleItemsPerPage}
+              onItemsPerPageChange={setScheduleItemsPerPage}
+            />
+          )}
         </div>
       )}
 
@@ -910,10 +1201,7 @@ useEffect(() => {
       {activeTab === 'storage' && (
         <div className="space-y-6">
           {isLoadingStorage ? (
-            <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-              <p className="text-gray-500 mt-4">Loading storage data...</p>
-            </div>
+            <LoadingSkeleton type="storage" />
           ) : storage ? (
             <>
               {/* Storage Overview */}
@@ -996,28 +1284,49 @@ useEffect(() => {
                 )}
               </div>
 
-              {/* Cleanup Actions */}
+              {/* Cleanup Actions - Conditional Rendering */}
               <div className="bg-white rounded-xl border border-gray-200 p-6">
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">Storage Cleanup</h2>
                 <div className="space-y-3">
-                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">Old Backups</p>
-                      <p className="text-xs text-gray-500">Backups older than 90 days</p>
+                  {/* Old Backups Cleanup - Only show if there are backups older than 90 days */}
+                  {hasOldBackups && (
+                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">Old Backups</p>
+                        <p className="text-xs text-gray-500">Backups older than 90 days</p>
+                      </div>
+                      <button 
+                        onClick={() => handleCleanup("backups", 90)} 
+                        className="px-3 py-1.5 text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100"
+                      >
+                        Clean Up
+                      </button>
                     </div>
-                    <button className="px-3 py-1.5 text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100">
-                      Clean Up
-                    </button>
-                  </div>
-                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">System Logs</p>
-                      <p className="text-xs text-gray-500">Logs older than 30 days</p>
+                  )}
+
+                  {/* System Logs Cleanup - Only show if there are logs older than 30 days */}
+                  {hasOldLogs && (
+                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">System Logs</p>
+                        <p className="text-xs text-gray-500">Logs older than 30 days</p>
+                      </div>
+                      <button  
+                        onClick={() => handleCleanup("logs", 30)} 
+                        className="px-3 py-1.5 text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100"
+                      >
+                        Clean Up
+                      </button>
                     </div>
-                    <button className="px-3 py-1.5 text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100">
-                      Clean Up
-                    </button>
-                  </div>
+                  )}
+
+                  {/* Message when no cleanup needed */}
+                  {!hasOldBackups && !hasOldLogs && (
+                    <div className="text-center py-6">
+                      <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-3" />
+                      <p className="text-sm text-gray-600">No cleanup needed at this time. All backups and logs are within retention period.</p>
+                    </div>
+                  )}
                 </div>
               </div>
             </>
@@ -1346,7 +1655,7 @@ useEffect(() => {
                   <div className="bg-gray-50 p-4 rounded-lg">
                     <p className="text-xs font-medium text-gray-700 mb-2">Backup Details:</p>
                     <div className="space-y-1">
-                      <p className="text-xs text-gray-600">ID: {selectedBackup.id}</p>
+                      <p className="text-xs text-gray-600">ID: {selectedBackup._id}</p>
                       <p className="text-xs text-gray-600">Date: {formatDate(selectedBackup.timestamp)}</p>
                       <p className="text-xs text-gray-600">Size: {formatBytes(selectedBackup.size)}</p>
                       {selectedBackup.databases && (
@@ -1511,7 +1820,7 @@ useEffect(() => {
                   Databases to Backup
                 </label>
                 <div className="space-y-2">
-                  {['users', 'applications', 'documents', 'offices', 'logs'].map(db => (
+                  {['users', 'applications', 'certificates', 'offices', 'logs','statushistories','restorebackups','backups'].map(db => (
                     <label key={db} className="flex items-center space-x-2">
                       <input
                         type="checkbox"
@@ -1602,7 +1911,7 @@ useEffect(() => {
               </div>
               <h2 className="text-xl font-bold text-gray-900 text-center mb-2">Delete Backup?</h2>
               <p className="text-sm text-gray-600 text-center mb-6">
-                Are you sure you want to delete backup {selectedBackup.id}? This action cannot be undone.
+                Are you sure you want to delete backup {selectedBackup._id}? This action cannot be undone.
               </p>
               <div className="flex space-x-3">
                 <button
@@ -1612,7 +1921,7 @@ useEffect(() => {
                   Cancel
                 </button>
                 <button
-                  onClick={() => handleDeleteBackup(selectedBackup.id)}
+                  onClick={() => handleDeleteBackup(selectedBackup._id)}
                   disabled={isDeletingBackup}
                   className="flex-1 px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50"
                 >

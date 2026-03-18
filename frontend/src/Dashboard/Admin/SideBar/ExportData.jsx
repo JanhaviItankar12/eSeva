@@ -33,8 +33,6 @@ import {
   Download as DownloadIcon,
   FileSpreadsheet,
   FileJson,
- 
-  
   FileCode,
   Layers,
   MapPin,
@@ -46,111 +44,28 @@ import {
   Zap,
   BarChart3,
   PieChart,
-  TrendingUp
+  TrendingUp,
+  AlertTriangle
 } from 'lucide-react';
+import {
+  useExportDataMutation,
+  useGetExportHistoryQuery,
+  useDeleteExportMutation,
+  useDownloadExportMutation,
+  useGetExportPreviewQuery,
+  useCreateExportTemplateMutation,
+  useGetExportTemplatesQuery,
+  useDeleteExportTemplateMutation
+} from '../../../features/api/adminApi'; // Adjust the import path as needed
 
-// Mock export history data
-const mockExportHistory = [
-  {
-    id: "EXP001",
-    name: "Citizen Data Export",
-    type: "citizens",
-    format: "CSV",
-    size: "15.2 MB",
-    records: 1050,
-    filters: { status: "active", district: "all" },
-    status: "completed",
-    createdBy: "admin@eseva.gov.in",
-    createdAt: "2026-02-23T10:30:00Z",
-    completedAt: "2026-02-23T10:31:15Z",
-    fileUrl: "/exports/citizens_20260223.csv",
-    checksum: "sha256:7d8f9e2a1b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e"
-  },
-  {
-    id: "EXP002",
-    name: "Application Data Export",
-    type: "applications",
-    format: "Excel",
-    size: "28.5 MB",
-    records: 4560,
-    filters: { status: "approved", dateFrom: "2026-01-01", dateTo: "2026-02-23" },
-    status: "completed",
-    createdBy: "admin@eseva.gov.in",
-    createdAt: "2026-02-23T09:15:00Z",
-    completedAt: "2026-02-23T09:17:30Z",
-    fileUrl: "/exports/applications_20260223.xlsx",
-    checksum: "sha256:1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b"
-  },
-  {
-    id: "EXP003",
-    name: "Office Hierarchy Export",
-    type: "offices",
-    format: "JSON",
-    size: "3.8 MB",
-    records: 1342,
-    filters: { level: "all", status: "active" },
-    status: "completed",
-    createdBy: "admin@eseva.gov.in",
-    createdAt: "2026-02-23T08:45:00Z",
-    completedAt: "2026-02-23T08:46:00Z",
-    fileUrl: "/exports/offices_20260223.json",
-    checksum: "sha256:9b8c7d6e5f4a3b2c1d0e9f8a7b6c5d4e3f2a1b0c"
-  },
-  {
-    id: "EXP004",
-    name: "Document Configuration Export",
-    type: "documents",
-    format: "JSON",
-    size: "1.2 MB",
-    records: 5,
-    filters: { active: true },
-    status: "completed",
-    createdBy: "admin@eseva.gov.in",
-    createdAt: "2026-02-23T08:00:00Z",
-    completedAt: "2026-02-23T08:00:45Z",
-    fileUrl: "/exports/documents_20260223.json",
-    checksum: "sha256:8a7b6c5d4e3f2a1b0c9d8e7f6a5b4c3d2e1f0a9b8c"
-  },
-  {
-    id: "EXP005",
-    name: "System Logs Export",
-    type: "logs",
-    format: "CSV",
-    size: "45.6 MB",
-    records: 25000,
-    filters: { dateFrom: "2026-02-01", dateTo: "2026-02-23", severity: "all" },
-    status: "processing",
-    createdBy: "admin@eseva.gov.in",
-    createdAt: "2026-02-23T11:00:00Z",
-    progress: 65,
-    fileUrl: null,
-    checksum: null
-  },
-  {
-    id: "EXP006",
-    name: "Analytics Data Export",
-    type: "analytics",
-    format: "Excel",
-    size: null,
-    records: null,
-    filters: { metrics: ["applications", "processing_time"], dateRange: "last_30_days" },
-    status: "pending",
-    createdBy: "admin@eseva.gov.in",
-    createdAt: "2026-02-23T11:30:00Z",
-    progress: 0,
-    fileUrl: null,
-    checksum: null
-  }
-];
-
-// Export types
+// Export types (keep this as is)
 const exportTypes = [
   {
     id: "citizens",
     name: "Citizen Data",
     icon: Users,
     description: "Export citizen profiles and personal information",
-    fields: ["Name", "Email", "Mobile", "Address", "Role", "Status", "Created Date"],
+    fields: ["Name", "Email", "Mobile", "Address", "Role", "isActive", "CreatedAt"],
     color: "bg-blue-100 text-blue-600"
   },
   {
@@ -158,7 +73,7 @@ const exportTypes = [
     name: "Officer Data",
     icon: Briefcase,
     description: "Export government officer details",
-    fields: ["Name", "Email", "Role", "Office", "Employee ID", "Status", "Last Login"],
+    fields: ["Name", "Email", "Role", "Office", "Employee ID", "isActive", "lastLogin"],
     color: "bg-purple-100 text-purple-600"
   },
   {
@@ -166,7 +81,7 @@ const exportTypes = [
     name: "Applications",
     icon: FileCheck,
     description: "Export certificate applications",
-    fields: ["Application ID", "Citizen", "Type", "Status", "Applied Date", "Current Office", "Documents"],
+    fields: ["applicationId", "citizenId", "createdAt", "currentStatus", "currentOfficeLevel", "certificateType"],
     color: "bg-green-100 text-green-600"
   },
   {
@@ -174,15 +89,15 @@ const exportTypes = [
     name: "Office Hierarchy",
     icon: Building2,
     description: "Export district, tehsil and gram panchayat data",
-    fields: ["Office Name", "Type", "Parent Office", "Status", "Created Date", "Total Officers"],
+    fields: ["officeName", "officeLevel", "parentOffice", "pincode", "createdAt", "isActive"],
     color: "bg-orange-100 text-orange-600"
   },
   {
-    id: "documents",
-    name: "Document Config",
+    id: "certificates",
+    name: "Certificates Config",
     icon: FileText,
     description: "Export certificate type configurations",
-    fields: ["Certificate Type", "Required Docs", "Processing Level", "SLA Days", "Fee", "Status"],
+    fields: ["name", "type", "description", "authority", "processingLevel", "fee"],
     color: "bg-yellow-100 text-yellow-600"
   },
   {
@@ -190,15 +105,15 @@ const exportTypes = [
     name: "System Logs",
     icon: Database,
     description: "Export system activity and error logs",
-    fields: ["Timestamp", "Type", "User", "Action", "IP", "Status", "Details"],
+    fields: ["type", "category", "action", "ip", "status", "method"],
     color: "bg-red-100 text-red-600"
   },
   {
-    id: "analytics",
-    name: "Analytics Data",
+    id: "notification",
+    name: "Notification Data",
     icon: BarChart3,
-    description: "Export performance metrics and statistics",
-    fields: ["Metric", "Value", "Period", "Comparison", "Trend"],
+    description: "Export all system notifications",
+    fields: ["userId", "applicationId", "message", "type", "sentAt"],
     color: "bg-indigo-100 text-indigo-600"
   },
   {
@@ -206,7 +121,7 @@ const exportTypes = [
     name: "Backup Metadata",
     icon: Archive,
     description: "Export backup history and configuration",
-    fields: ["Backup ID", "Type", "Size", "Date", "Status", "Location"],
+    fields: ["type", "size", "createdBy", "status", "location"],
     color: "bg-gray-100 text-gray-600"
   }
 ];
@@ -228,7 +143,7 @@ const filterOptions = {
 };
 
 const ExportData = () => {
-  const [activeTab, setActiveTab] = useState('export'); // 'export', 'history', 'templates'
+  const [activeTab, setActiveTab] = useState('export');
   const [selectedType, setSelectedType] = useState('citizens');
   const [selectedFormat, setSelectedFormat] = useState('csv');
   const [filters, setFilters] = useState({
@@ -241,36 +156,62 @@ const ExportData = () => {
     includeHeaders: true,
     includeMetadata: false
   });
-  const [exportHistory, setExportHistory] = useState(mockExportHistory);
   const [searchTerm, setSearchTerm] = useState('');
   const [showPreview, setShowPreview] = useState(false);
   const [previewData, setPreviewData] = useState([]);
-  const [isExporting, setIsExporting] = useState(false);
-  const [exportProgress, setExportProgress] = useState(0);
   const [showSuccess, setShowSuccess] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [selectedExport, setSelectedExport] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [templateName, setTemplateName] = useState('');
+  const [showSaveTemplateModal, setShowSaveTemplateModal] = useState(false);
+
+  // RTK Query hooks
+  const [exportData, { isLoading: isExporting }] = useExportDataMutation();
+  const [deleteExport, { isLoading: isDeleting }] = useDeleteExportMutation();
+  const [downloadExport, { isLoading: isDownloading }] = useDownloadExportMutation();
+  const [createTemplate, { isLoading: isCreatingTemplate }] = useCreateExportTemplateMutation();
+  
+  const { 
+    data: exportHistory = [], 
+    refetch: refetchHistory,
+    isLoading: isLoadingHistory 
+  } = useGetExportHistoryQuery({
+    search: searchTerm,
+    type: selectedType,
+    limit: 50
+  });
+
+  
+  
+  const { 
+    data: templates = [], 
+    refetch: refetchTemplates,
+    isLoading: isLoadingTemplates 
+  } = useGetExportTemplatesQuery();
+  
+  const [deleteTemplate] = useDeleteExportTemplateMutation();
 
   // Get current export type config
   const currentType = exportTypes.find(t => t.id === selectedType);
 
   // Filter export history
-  const filteredHistory = exportHistory.filter(exp => {
-    if (searchTerm) {
-      const searchLower = searchTerm.toLowerCase();
-      return (
-        exp.name.toLowerCase().includes(searchLower) ||
-        exp.type.toLowerCase().includes(searchLower) ||
-        exp.createdBy.toLowerCase().includes(searchLower)
-      );
-    }
-    return true;
-  });
+ const filteredHistory = exportHistory?.data?.filter((exp) => {
+  if (!searchTerm?.trim()) return true;
+
+  const searchLower = searchTerm.toLowerCase();
+
+  return (
+    (exp.name || "").toLowerCase().includes(searchLower) ||
+    (exp.type || "").toLowerCase().includes(searchLower) ||
+    (exp.createdBy || "").toLowerCase().includes(searchLower)
+  );
+}) || [];
 
   // Format date
   const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
     const date = new Date(dateString);
     const today = new Date();
     const yesterday = new Date(today);
@@ -302,71 +243,175 @@ const ExportData = () => {
     }
   };
 
-  // Handle export
+  // Handle export with API
   const handleExport = async () => {
-    setIsExporting(true);
-    setExportProgress(0);
+    try {
+      const exportData = {
+        type: selectedType,
+        format: selectedFormat,
+        filters: {
+          ...filters,
+          dateFrom: filters.dateRange === 'custom' ? filters.dateFrom : undefined,
+          dateTo: filters.dateRange === 'custom' ? filters.dateTo : undefined,
+        },
+        options: {
+          includeHeaders: filters.includeHeaders,
+          includeMetadata: filters.includeMetadata
+        }
+      };
 
-    // Simulate export progress
-    for (let i = 0; i <= 100; i += 10) {
-      await new Promise(resolve => setTimeout(resolve, 300));
-      setExportProgress(i);
+      const response = await exportData(exportData).unwrap();
+      
+      setSuccessMessage('Export started successfully!');
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 3000);
+      
+      // Refresh export history
+      refetchHistory();
+    } catch (error) {
+      setSuccessMessage('Export failed: ' + (error.data?.message || 'Unknown error'));
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 3000);
     }
-
-    const newExport = {
-      id: `EXP${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`,
-      name: `${currentType.name} Export`,
-      type: selectedType,
-      format: selectedFormat.toUpperCase(),
-      size: `${Math.floor(Math.random() * 50) + 1}.${Math.floor(Math.random() * 9)} MB`,
-      records: Math.floor(Math.random() * 5000) + 100,
-      filters: { ...filters },
-      status: 'completed',
-      createdBy: 'admin@eseva.gov.in',
-      createdAt: new Date().toISOString(),
-      completedAt: new Date().toISOString(),
-      fileUrl: `/exports/${selectedType}_${new Date().toISOString().split('T')[0]}.${selectedFormat}`,
-      checksum: `sha256:${Math.random().toString(36).substring(2, 34)}`
-    };
-
-    setExportHistory(prev => [newExport, ...prev]);
-    setIsExporting(false);
-    setExportProgress(0);
-    setSuccessMessage('Export completed successfully!');
-    setShowSuccess(true);
-    setTimeout(() => setShowSuccess(false), 3000);
   };
 
   // Handle delete export
-  const handleDeleteExport = (exportId) => {
-    setExportHistory(prev => prev.filter(e => e.id !== exportId));
-    setShowDeleteConfirm(false);
-    setSuccessMessage('Export deleted successfully');
-    setShowSuccess(true);
-    setTimeout(() => setShowSuccess(false), 3000);
+  const handleDeleteExport = async (exportId) => {
+    try {
+      await deleteExport(exportId).unwrap();
+      setShowDeleteConfirm(false);
+      setSuccessMessage('Export deleted successfully');
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 3000);
+      refetchHistory();
+    } catch (error) {
+      setSuccessMessage('Delete failed: ' + (error.data?.message || 'Unknown error'));
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 3000);
+    }
   };
 
   // Handle download
-  const handleDownload = (exportItem) => {
-    // In real app, trigger file download
-    setSuccessMessage(`Downloading ${exportItem.name}...`);
-    setShowSuccess(true);
-    setTimeout(() => setShowSuccess(false), 2000);
+  const handleDownload = async (exportItem) => {
+    try {
+      const response = await downloadExport(exportItem.id).unwrap();
+      
+      // Create a download link
+      const url = window.URL.createObjectURL(new Blob([response]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `${exportItem.name}.${exportItem.format.toLowerCase()}`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      
+      setSuccessMessage(`Downloading ${exportItem.name}...`);
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 2000);
+    } catch (error) {
+      setSuccessMessage('Download failed: ' + (error.data?.message || 'Unknown error'));
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 3000);
+    }
   };
 
   // Handle preview
-  const handlePreview = () => {
-    // Generate mock preview data
-    const mockPreview = [];
-    for (let i = 0; i < 5; i++) {
-      const row = {};
-      currentType.fields.forEach(field => {
-        row[field] = `Sample ${field} ${i + 1}`;
-      });
-      mockPreview.push(row);
+  const handlePreview = async () => {
+    try {
+      // Fetch preview data from API
+      const response = await fetch(`/api/admin/exports/preview?type=${selectedType}&limit=5`);
+      const data = await response.json();
+      setPreviewData(data);
+      setShowPreview(true);
+    } catch (error) {
+      // Fallback to mock data if API fails
+      const mockPreview = [];
+      for (let i = 0; i < 5; i++) {
+        const row = {};
+        currentType.fields.forEach(field => {
+          row[field] = `Sample ${field} ${i + 1}`;
+        });
+        mockPreview.push(row);
+      }
+      setPreviewData(mockPreview);
+      setShowPreview(true);
     }
-    setPreviewData(mockPreview);
-    setShowPreview(true);
+  };
+
+  // Handle save template
+  const handleSaveTemplate = async () => {
+    if (!templateName.trim()) {
+      setSuccessMessage('Please enter a template name');
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 2000);
+      return;
+    }
+
+    try {
+      const templateData = {
+        name: templateName,
+        type: selectedType,
+        format: selectedFormat,
+        filters: {
+          ...filters,
+          dateFrom: filters.dateRange === 'custom' ? filters.dateFrom : undefined,
+          dateTo: filters.dateRange === 'custom' ? filters.dateTo : undefined,
+        },
+        options: {
+          includeHeaders: filters.includeHeaders,
+          includeMetadata: filters.includeMetadata
+        }
+      };
+
+      await createTemplate(templateData).unwrap();
+      
+      setShowSaveTemplateModal(false);
+      setTemplateName('');
+      setSuccessMessage('Template saved successfully');
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 3000);
+      
+      refetchTemplates();
+    } catch (error) {
+      setSuccessMessage('Failed to save template: ' + (error.data?.message || 'Unknown error'));
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 3000);
+    }
+  };
+
+  // Handle delete template
+  const handleDeleteTemplate = async (templateId) => {
+    try {
+      await deleteTemplate(templateId).unwrap();
+      setSuccessMessage('Template deleted successfully');
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 3000);
+      refetchTemplates();
+    } catch (error) {
+      setSuccessMessage('Failed to delete template: ' + (error.data?.message || 'Unknown error'));
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 3000);
+    }
+  };
+
+  // Handle apply template
+  const handleApplyTemplate = (template) => {
+    setSelectedType(template.type);
+    setSelectedFormat(template.format);
+    setFilters({
+      ...filters,
+      ...template.filters,
+      dateRange: template.filters.dateFrom ? 'custom' : 'last_30_days'
+    });
+    setActiveTab('export');
+  };
+
+  // Get export progress (you might need to implement a polling mechanism for this)
+  const getExportProgress = (exportItem) => {
+    if (exportItem.status === 'processing') {
+      return exportItem.progress || 0;
+    }
+    return 100;
   };
 
   return (
@@ -638,8 +683,8 @@ const ExportData = () => {
               </div>
             </div>
 
-            {/* Export Button */}
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
+            {/* Export Button and Save Template */}
+            <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
               {isExporting ? (
                 <div className="text-center">
                   <div className="mb-4">
@@ -656,19 +701,28 @@ const ExportData = () => {
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div
                       className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                      style={{ width: `${exportProgress}%` }}
+                      style={{ width: '0%' }}
                     ></div>
                   </div>
-                  <p className="text-xs text-gray-500 mt-2">{exportProgress}% Complete</p>
                 </div>
               ) : (
-                <button
-                  onClick={handleExport}
-                  className="w-full flex items-center justify-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-lg font-medium"
-                >
-                  <DownloadIcon className="w-5 h-5 mr-2" />
-                  Export {currentType.name}
-                </button>
+                <div className="space-y-3">
+                  <button
+                    onClick={handleExport}
+                    className="w-full flex items-center justify-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-lg font-medium"
+                  >
+                    <DownloadIcon className="w-5 h-5 mr-2" />
+                    Export {currentType.name}
+                  </button>
+                  
+                  <button
+                    onClick={() => setShowSaveTemplateModal(true)}
+                    className="w-full flex items-center justify-center px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium"
+                  >
+                    <Save className="w-4 h-4 mr-2" />
+                    Save as Template
+                  </button>
+                </div>
               )}
             </div>
           </div>
@@ -678,192 +732,223 @@ const ExportData = () => {
       {/* Export History Tab */}
       {activeTab === 'history' && (
         <>
-          {/* Search */}
+          {/* Search and Refresh */}
           <div className="bg-white rounded-xl border border-gray-200 p-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search exports..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
+            <div className="flex space-x-4">
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search exports..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              <button
+                onClick={() => refetchHistory()}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 flex items-center"
+              >
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Refresh
+              </button>
             </div>
           </div>
 
           {/* Export List */}
           <div className="space-y-4">
-            {filteredHistory.map(exportItem => (
-              <div key={exportItem.id} className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-md transition-shadow">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start space-x-4">
-                    <div className={`p-2 rounded-lg ${
-                      exportTypes.find(t => t.id === exportItem.type)?.color || 'bg-gray-100'
-                    }`}>
-                      {(() => {
-                        const Icon = exportTypes.find(t => t.id === exportItem.type)?.icon || FileText;
-                        return <Icon className="w-5 h-5" />;
-                      })()}
-                    </div>
-                    <div>
-                      <div className="flex items-center space-x-2">
-                        <h3 className="text-lg font-semibold text-gray-900">{exportItem.name}</h3>
-                        <span className={`text-xs px-2 py-1 rounded-full ${getStatusColor(exportItem.status)}`}>
-                          {exportItem.status}
-                        </span>
-                        <span className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded-full">
-                          {exportItem.format}
-                        </span>
+            {isLoadingHistory ? (
+              <div className="text-center py-12">
+                <div className="w-16 h-16 mx-auto relative">
+                  <div className="absolute inset-0 border-4 border-blue-200 rounded-full"></div>
+                  <div className="absolute inset-0 border-4 border-blue-600 rounded-full border-t-transparent animate-spin"></div>
+                </div>
+                <p className="text-gray-500 mt-4">Loading export history...</p>
+              </div>
+            ) : filteredHistory.length === 0 ? (
+              <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
+                <Database className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-500">No exports found</p>
+                <button
+                  onClick={() => setActiveTab('export')}
+                  className="mt-4 px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100"
+                >
+                  Create New Export
+                </button>
+              </div>
+            ) : (
+              filteredHistory.map(exportItem => (
+                <div key={exportItem.id} className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-md transition-shadow">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start space-x-4">
+                      <div className={`p-2 rounded-lg ${
+                        exportTypes.find(t => t.id === exportItem.type)?.color || 'bg-gray-100'
+                      }`}>
+                        {(() => {
+                          const Icon = exportTypes.find(t => t.id === exportItem.type)?.icon || FileText;
+                          return <Icon className="w-5 h-5" />;
+                        })()}
                       </div>
-                      <p className="text-sm text-gray-600 mt-1">ID: {exportItem.id}</p>
-                      <div className="flex items-center space-x-4 mt-2">
-                        <span className="text-xs text-gray-500 flex items-center">
-                          <Database className="w-3 h-3 mr-1" />
-                          {exportItem.records?.toLocaleString() || '?'} records
-                        </span>
-                        {exportItem.size && (
-                          <span className="text-xs text-gray-500 flex items-center">
-                            <HardDrive className="w-3 h-3 mr-1" />
-                            {exportItem.size}
+                      <div>
+                        <div className="flex items-center space-x-2">
+                          <h3 className="text-lg font-semibold text-gray-900">{exportItem.name}</h3>
+                          <span className={`text-xs px-2 py-1 rounded-full ${getStatusColor(exportItem.status)}`}>
+                            {exportItem.status}
                           </span>
-                        )}
-                        <span className="text-xs text-gray-500 flex items-center">
-                          <Calendar className="w-3 h-3 mr-1" />
-                          {formatDate(exportItem.createdAt)}
-                        </span>
-                      </div>
-                      {exportItem.status === 'processing' && (
-                        <div className="mt-3 w-64">
-                          <div className="flex justify-between text-xs mb-1">
-                            <span className="text-gray-600">Progress</span>
-                            <span className="font-medium">{exportItem.progress}%</span>
-                          </div>
-                          <div className="w-full bg-gray-200 rounded-full h-1.5">
-                            <div
-                              className="bg-blue-600 h-1.5 rounded-full"
-                              style={{ width: `${exportItem.progress}%` }}
-                            ></div>
-                          </div>
+                          <span className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded-full">
+                            {exportItem.format}
+                          </span>
                         </div>
-                      )}
+                        <p className="text-sm text-gray-600 mt-1">ID: {exportItem.id}</p>
+                        <div className="flex items-center space-x-4 mt-2">
+                          <span className="text-xs text-gray-500 flex items-center">
+                            <Database className="w-3 h-3 mr-1" />
+                            {exportItem.records?.toLocaleString() || '?'} records
+                          </span>
+                          {exportItem.size && (
+                            <span className="text-xs text-gray-500 flex items-center">
+                              <HardDrive className="w-3 h-3 mr-1" />
+                              {exportItem.size}
+                            </span>
+                          )}
+                          <span className="text-xs text-gray-500 flex items-center">
+                            <Calendar className="w-3 h-3 mr-1" />
+                            {formatDate(exportItem.createdAt)}
+                          </span>
+                        </div>
+                        {exportItem.status === 'processing' && (
+                          <div className="mt-3 w-64">
+                            <div className="flex justify-between text-xs mb-1">
+                              <span className="text-gray-600">Progress</span>
+                              <span className="font-medium">{getExportProgress(exportItem)}%</span>
+                            </div>
+                            <div className="w-full bg-gray-200 rounded-full h-1.5">
+                              <div
+                                className="bg-blue-600 h-1.5 rounded-full"
+                                style={{ width: `${getExportProgress(exportItem)}%` }}
+                              ></div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex space-x-2">
-                    {exportItem.status === 'completed' && (
+                    <div className="flex space-x-2">
+                      {exportItem.status === 'completed' && (
+                        <button
+                          onClick={() => handleDownload(exportItem)}
+                          disabled={isDownloading}
+                          className="p-2 hover:bg-gray-100 rounded-lg disabled:opacity-50"
+                          title="Download"
+                        >
+                          <DownloadIcon className="w-4 h-4 text-blue-500" />
+                        </button>
+                      )}
                       <button
-                        onClick={() => handleDownload(exportItem)}
+                        onClick={() => {
+                          setSelectedExport(exportItem);
+                          setShowDetailsModal(true);
+                        }}
                         className="p-2 hover:bg-gray-100 rounded-lg"
-                        title="Download"
+                        title="View Details"
                       >
-                        <DownloadIcon className="w-4 h-4 text-blue-500" />
+                        <Eye className="w-4 h-4 text-gray-500" />
                       </button>
-                    )}
-                    <button
-                      onClick={() => {
-                        setSelectedExport(exportItem);
-                        setShowDetailsModal(true);
-                      }}
-                      className="p-2 hover:bg-gray-100 rounded-lg"
-                      title="View Details"
-                    >
-                      <Eye className="w-4 h-4 text-gray-500" />
-                    </button>
-                    <button
-                      onClick={() => {
-                        setSelectedExport(exportItem);
-                        setShowDeleteConfirm(true);
-                      }}
-                      className="p-2 hover:bg-red-100 rounded-lg"
-                      title="Delete"
-                    >
-                      <Trash2 className="w-4 h-4 text-red-500" />
-                    </button>
+                      <button
+                        onClick={() => {
+                          setSelectedExport(exportItem);
+                          setShowDeleteConfirm(true);
+                        }}
+                        disabled={isDeleting}
+                        className="p-2 hover:bg-red-100 rounded-lg disabled:opacity-50"
+                        title="Delete"
+                      >
+                        <Trash2 className="w-4 h-4 text-red-500" />
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </>
       )}
 
       {/* Saved Templates Tab */}
       {activeTab === 'templates' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Template Card */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex items-center space-x-3">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <Users className="w-5 h-5 text-blue-600" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-gray-900">Monthly Citizen Report</h3>
-                  <p className="text-xs text-gray-500">Last used: 2 days ago</p>
-                </div>
+        <>
+          {isLoadingTemplates ? (
+            <div className="text-center py-12">
+              <div className="w-16 h-16 mx-auto relative">
+                <div className="absolute inset-0 border-4 border-blue-200 rounded-full"></div>
+                <div className="absolute inset-0 border-4 border-blue-600 rounded-full border-t-transparent animate-spin"></div>
               </div>
-              <span className="text-xs px-2 py-1 bg-green-100 text-green-800 rounded-full">Active</span>
+              <p className="text-gray-500 mt-4">Loading templates...</p>
             </div>
-            <div className="space-y-2 text-sm text-gray-600">
-              <p>Type: Citizen Data</p>
-              <p>Format: Excel</p>
-              <p>Filters: Active citizens, All districts</p>
-              <p>Schedule: Monthly on 1st</p>
-            </div>
-            <div className="mt-4 flex justify-end space-x-2">
-              <button className="p-2 hover:bg-gray-100 rounded-lg">
-                <Edit3 className="w-4 h-4 text-gray-500" />
-              </button>
-              <button className="p-2 hover:bg-gray-100 rounded-lg">
-                <Copy className="w-4 h-4 text-gray-500" />
-              </button>
-              <button className="p-2 hover:bg-red-100 rounded-lg">
-                <Trash2 className="w-4 h-4 text-red-500" />
-              </button>
-            </div>
-          </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {templates.map(template => (
+                <div key={template.id} className="bg-white rounded-xl border border-gray-200 p-6">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center space-x-3">
+                      <div className={`p-2 rounded-lg ${
+                        exportTypes.find(t => t.id === template.type)?.color || 'bg-blue-100'
+                      }`}>
+                        {(() => {
+                          const Icon = exportTypes.find(t => t.id === template.type)?.icon || FileText;
+                          return <Icon className="w-5 h-5" />;
+                        })()}
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-gray-900">{template.name}</h3>
+                        <p className="text-xs text-gray-500">
+                          Last used: {template.lastUsed ? formatDate(template.lastUsed) : 'Never'}
+                        </p>
+                      </div>
+                    </div>
+                    <span className={`text-xs px-2 py-1 rounded-full ${
+                      template.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                    }`}>
+                      {template.isActive ? 'Active' : 'Inactive'}
+                    </span>
+                  </div>
+                  <div className="space-y-2 text-sm text-gray-600">
+                    <p>Type: {exportTypes.find(t => t.id === template.type)?.name || template.type}</p>
+                    <p>Format: {template.format.toUpperCase()}</p>
+                    <p>Filters: {Object.keys(template.filters || {}).length} filters applied</p>
+                    {template.schedule && <p>Schedule: {template.schedule}</p>}
+                  </div>
+                  <div className="mt-4 flex justify-end space-x-2">
+                    <button
+                      onClick={() => handleApplyTemplate(template)}
+                      className="p-2 hover:bg-gray-100 rounded-lg"
+                      title="Apply Template"
+                    >
+                      <Copy className="w-4 h-4 text-blue-500" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteTemplate(template.id)}
+                      className="p-2 hover:bg-red-100 rounded-lg"
+                      title="Delete Template"
+                    >
+                      <Trash2 className="w-4 h-4 text-red-500" />
+                    </button>
+                  </div>
+                </div>
+              ))}
 
-          {/* Template Card */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex items-center space-x-3">
-                <div className="p-2 bg-green-100 rounded-lg">
-                  <FileCheck className="w-5 h-5 text-green-600" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-gray-900">Weekly Applications</h3>
-                  <p className="text-xs text-gray-500">Last used: 5 days ago</p>
-                </div>
+              {/* Add Template Button */}
+              <div className="bg-white rounded-xl border-2 border-dashed border-gray-300 p-6 flex items-center justify-center">
+                <button 
+                  onClick={() => setShowSaveTemplateModal(true)}
+                  className="text-center"
+                >
+                  <PlusCircle className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                  <p className="text-sm font-medium text-gray-600">Create New Template</p>
+                </button>
               </div>
-              <span className="text-xs px-2 py-1 bg-green-100 text-green-800 rounded-full">Active</span>
             </div>
-            <div className="space-y-2 text-sm text-gray-600">
-              <p>Type: Applications</p>
-              <p>Format: CSV</p>
-              <p>Filters: Last 7 days, All statuses</p>
-              <p>Schedule: Every Monday</p>
-            </div>
-            <div className="mt-4 flex justify-end space-x-2">
-              <button className="p-2 hover:bg-gray-100 rounded-lg">
-                <Edit3 className="w-4 h-4 text-gray-500" />
-              </button>
-              <button className="p-2 hover:bg-gray-100 rounded-lg">
-                <Copy className="w-4 h-4 text-gray-500" />
-              </button>
-              <button className="p-2 hover:bg-red-100 rounded-lg">
-                <Trash2 className="w-4 h-4 text-red-500" />
-              </button>
-            </div>
-          </div>
-
-          {/* Add Template Button */}
-          <div className="bg-white rounded-xl border-2 border-dashed border-gray-300 p-6 flex items-center justify-center">
-            <button className="text-center">
-              <PlusCircle className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-              <p className="text-sm font-medium text-gray-600">Create New Template</p>
-            </button>
-          </div>
-        </div>
+          )}
+        </>
       )}
 
       {/* Preview Modal */}
@@ -999,7 +1084,9 @@ const ExportData = () => {
                   <p className="text-xs text-gray-500 mb-2">File Location</p>
                   <div className="bg-gray-50 p-3 rounded-lg">
                     <p className="text-xs font-mono text-gray-700 break-all">{selectedExport.fileUrl}</p>
-                    <p className="text-xs text-gray-500 mt-2">Checksum: {selectedExport.checksum}</p>
+                    {selectedExport.checksum && (
+                      <p className="text-xs text-gray-500 mt-2">Checksum: {selectedExport.checksum}</p>
+                    )}
                   </div>
                 </div>
               )}
@@ -1008,10 +1095,11 @@ const ExportData = () => {
                 {selectedExport.status === 'completed' && (
                   <button
                     onClick={() => handleDownload(selectedExport)}
-                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+                    disabled={isDownloading}
+                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50"
                   >
                     <DownloadIcon className="w-4 h-4 inline mr-2" />
-                    Download File
+                    {isDownloading ? 'Downloading...' : 'Download File'}
                   </button>
                 )}
                 <button
@@ -1049,9 +1137,62 @@ const ExportData = () => {
                 </button>
                 <button
                   onClick={() => handleDeleteExport(selectedExport.id)}
-                  className="flex-1 px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700"
+                  disabled={isDeleting}
+                  className="flex-1 px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50"
                 >
-                  Delete
+                  {isDeleting ? 'Deleting...' : 'Delete'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Save Template Modal */}
+      {showSaveTemplateModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl max-w-md w-full">
+            <div className="p-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">Save as Template</h2>
+              <p className="text-sm text-gray-600 mb-4">
+                Save the current export configuration as a template for future use.
+              </p>
+              
+              <div className="mb-4">
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  Template Name
+                </label>
+                <input
+                  type="text"
+                  value={templateName}
+                  onChange={(e) => setTemplateName(e.target.value)}
+                  placeholder="e.g., Monthly Citizen Report"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+
+              <div className="bg-gray-50 p-3 rounded-lg mb-4">
+                <p className="text-xs font-medium text-gray-700 mb-2">Configuration Summary:</p>
+                <ul className="text-xs text-gray-600 space-y-1">
+                  <li>Type: {currentType.name}</li>
+                  <li>Format: {selectedFormat.toUpperCase()}</li>
+                  <li>Filters: {Object.keys(filters).length} filters</li>
+                </ul>
+              </div>
+
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => setShowSaveTemplateModal(false)}
+                  className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveTemplate}
+                  disabled={isCreatingTemplate}
+                  className="flex-1 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {isCreatingTemplate ? 'Saving...' : 'Save Template'}
                 </button>
               </div>
             </div>

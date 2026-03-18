@@ -5,6 +5,7 @@ export const adminApi = createApi({
   reducerPath: "adminApi",
   baseQuery: fetchBaseQuery({
     baseUrl: "http://localhost:8080/api/",
+    credentials: 'include',
     prepareHeaders: (headers, { getState }) => {
       const token = getState().auth.token || localStorage.getItem("token");
 
@@ -16,7 +17,7 @@ export const adminApi = createApi({
       return headers;
     },
   }),
-  tagTypes: ['Officer', "Officers", 'Office', 'District', 'Tehsil', 'Gram', 'Settings','Backups', 'Schedules'],
+  tagTypes: ['Officer', "Officers", 'Office', 'District', 'Tehsil', 'Gram', 'Settings', 'Backups', 'Schedules','Exports','Templates'],
   endpoints: (builder) => ({
     createOfficer: builder.mutation({
       query: (userData) => ({
@@ -243,10 +244,10 @@ export const adminApi = createApi({
     }),
 
 
-     //  GET BACKUP HISTORY
+    //  GET BACKUP HISTORY
     getBackups: builder.query({
       query: () => ({
-        url: "/admin/backups",
+        url: `/admin/backups`,
         method: "GET"
       }),
       providesTags: ['Backups']
@@ -255,7 +256,7 @@ export const adminApi = createApi({
     //  CREATE BACKUP
     createBackup: builder.mutation({
       query: () => ({
-        url: "/admin/backups",
+        url: `/admin/backups`,
         method: "POST"
       }),
       invalidatesTags: ['Backups']
@@ -264,7 +265,7 @@ export const adminApi = createApi({
     //  GET SCHEDULES
     getSchedules: builder.query({
       query: () => ({
-        url: "/admin/schedules",
+        url: `/admin/schedules`,
         method: "GET"
       }),
       providesTags: ['Schedules']
@@ -273,10 +274,24 @@ export const adminApi = createApi({
     //  GET STORAGE INFO
     getStorage: builder.query({
       query: () => ({
-        url: "/admin/storage",
+        url: `/admin/storage`,
         method: "GET"
       })
     }),
+
+    //  GET STORAGE INFO
+    cleanupStorage: builder.mutation({
+      query: (params) => ({
+        url: `/admin/storage/cleanup`,
+        method: "DELETE",
+        params
+      })
+    }),
+
+
+
+
+
 
     //  RESTORE BACKUP
     restoreBackup: builder.mutation({
@@ -299,11 +314,19 @@ export const adminApi = createApi({
     //  CREATE SCHEDULE
     createSchedule: builder.mutation({
       query: (data) => ({
-        url: "/admin/schedules",
+        url: `/admin/schedules`,
         method: "POST",
         body: data
       }),
       invalidatesTags: ["Schedules"]
+    }),
+
+    downloadBackup: builder.mutation({
+      query: (id) => ({
+        url: `/admin/backups/${id}/download`,
+        method: "GET",
+        responseHandler: async (response) => await response.blob()
+      }),
     }),
 
     // UPDATE SCHEDULE
@@ -327,9 +350,10 @@ export const adminApi = createApi({
 
     //  TOGGLE SCHEDULE (ACTIVE/INACTIVE)
     toggleSchedule: builder.mutation({
-      query: (id) => ({
+      query: ({id,status}) => ({
         url: `/admin/schedules/${id}/toggle`,
-        method: "PATCH"
+        method: "PATCH",
+        body:{status}
       }),
       invalidatesTags: ["Schedules"]
     }),
@@ -337,7 +361,7 @@ export const adminApi = createApi({
     //  UPDATE BACKUP SETTINGS
     updateBackupSettings: builder.mutation({
       query: (data) => ({
-        url: "/admin/settings/backup",
+        url: `/admin/settings/backup`,
         method: "PUT",
         body: data
       }),
@@ -346,15 +370,80 @@ export const adminApi = createApi({
 
     getBackupSettings: builder.query({
       query: () => ({
-        url: "/admin/settings/backup",
+        url: `/admin/settings/backup`,
         method: "GET",
-        
+
       }),
       invalidatesTags: ["Settings"]
     }),
 
+      
+    //export 
+      exportData: builder.mutation({
+      query: (data) => ({
+        url: "/admin/exports",
+        method: "POST",
+        body: data,
+      }),
+      invalidatesTags: ["Exports"],
+    }),
 
+   
+    getExportHistory: builder.query({
+      query: () => "/admin/exports",
+      providesTags: ["Exports"],
+    }),
 
+   
+    deleteExport: builder.mutation({
+      query: (id) => ({
+        url: `/admin/exports/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["Exports"],
+    }),
+
+  
+    downloadExport: builder.mutation({
+      query: (id) => ({
+        url: `/admin/exports/${id}/download`,
+        method: "GET",
+        responseHandler: async (response) => {
+          const blob = await response.blob();
+          return blob;
+        },
+      }),
+    }),
+
+    
+    getExportPreview: builder.query({
+      query: (id) => `/admin/exports/${id}/preview`,
+    }),
+
+   
+    createExportTemplate: builder.mutation({
+      query: (data) => ({
+        url: "/admin/export-templates",
+        method: "POST",
+        body: data,
+      }),
+      invalidatesTags: ["Templates"],
+    }),
+
+   
+    getExportTemplates: builder.query({
+      query: () => "/admin/export-templates",
+      providesTags: ["Templates"],
+    }),
+
+    
+    deleteExportTemplate: builder.mutation({
+      query: (id) => ({
+        url: `/admin/export-templates/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["Templates"],
+    }),
 
 
 
@@ -397,12 +486,24 @@ export const {
   useGetBackupsQuery,
   useGetSchedulesQuery,
   useGetStorageQuery,
+
   useRestoreBackupMutation,
   useCreateScheduleMutation,
   useDeleteBackupMutation,
+  useDownloadBackupMutation,
   useDeleteScheduleMutation,
   useUpdateScheduleMutation,
   useToggleScheduleMutation,
   useUpdateBackupSettingsMutation,
-  useGetBackupSettingsQuery
+  useGetBackupSettingsQuery,
+  useCleanupStorageMutation,
+  useExportDataMutation,
+  useGetExportHistoryQuery,
+  useCreateExportTemplateMutation,
+  useDeleteExportMutation,
+  useDeleteExportTemplateMutation,
+  useDownloadExportMutation,
+  useGetExportPreviewQuery,
+  useGetExportTemplatesQuery
+ 
 } = adminApi;
